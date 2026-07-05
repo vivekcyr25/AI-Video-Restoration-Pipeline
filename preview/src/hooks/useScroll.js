@@ -82,29 +82,46 @@ export function useGlobalScroll() {
   return { scrollProgress }
 }
 
-function beatOpacity(progress, index, total) {
-  const slice = 1 / total
-  const start = index * slice
-  const end = (index + 1) * slice
-  const fade = slice * 0.25
+function beatState(progress, index, total) {
+  const start = index / total
+  const end = (index + 1) / total
+  const width = end - start
 
-  if (progress < start - fade) return 0
-  if (progress < start + fade) return (progress - (start - fade)) / (fade * 2)
-  if (progress < end - fade) return 1
-  if (progress < end + fade) return 1 - (progress - (end - fade)) / (fade * 2)
-  return 0
+  if (progress < start - width * 0.05 || progress > end + width * 0.05) {
+    return { opacity: 0, visible: false, zIndex: 0 }
+  }
+
+  const local = (progress - start) / width
+  let opacity = 1
+
+  if (local < 0.18) opacity = local / 0.18
+  else if (local > 0.82) opacity = (1 - local) / 0.18
+
+  opacity = Math.max(0, Math.min(1, opacity))
+
+  return {
+    opacity,
+    visible: opacity > 0.02,
+    zIndex: Math.round(opacity * 100),
+  }
 }
 
 export function getBeatStyles(progress, index, total) {
-  const opacity = beatOpacity(progress, index, total)
-  const translateY = (1 - opacity) * 28
-  const scale = 0.96 + opacity * 0.04
+  const { opacity, visible, zIndex } = beatState(progress, index, total)
+  const translateY = (1 - opacity) * 20
+
   return {
     opacity,
-    transform: `translate3d(0, ${translateY}px, 0) scale(${scale})`,
-    pointerEvents: opacity > 0.5 ? 'auto' : 'none',
-    willChange: opacity > 0 && opacity < 1 ? 'opacity, transform' : 'auto',
+    zIndex,
+    visibility: visible ? 'visible' : 'hidden',
+    transform: `translate3d(0, ${translateY}px, 0)`,
+    pointerEvents: opacity > 0.6 ? 'auto' : 'none',
   }
+}
+
+export function getIntroExitOpacity(progress) {
+  if (progress < 0.88) return 1
+  return Math.max(0, 1 - (progress - 0.88) / 0.12)
 }
 
 export function useSectionScroll(ref, stageCount) {
