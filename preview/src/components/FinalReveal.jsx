@@ -59,7 +59,7 @@ export default function FinalReveal() {
             Memory, recovered.
           </h2>
           <p className="text-white/50 max-w-xl mx-auto">
-            {PROJECT.stats.duration} of wedding footage · {PROJECT.stats.scenes} scenes ·
+            {PROJECT.stats.duration} of source footage · {PROJECT.stats.scenes} scenes ·
             lighting-invariant matching · temporally coherent optical flow reconstruction
           </p>
         </div>

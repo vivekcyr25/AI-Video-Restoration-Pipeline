@@ -23,7 +23,7 @@ function MediaFrame({ variant, label, artifacts }) {
           }}
         />
 
-        {/* Simulated wedding scene silhouettes */}
+        {/* Simulated scene silhouettes */}
         <div className="absolute inset-0 flex items-end justify-center pb-[15%]">
           <div
             className={`flex gap-3 items-end ${
@@ -149,7 +149,7 @@ export default function PipelineAnimation({ stages, activeStage, onStageClick })
           className="relative flex-1 transition-opacity duration-500"
           style={{ opacity: progress > 0.65 ? 0.3 : 1 }}
         >
-          <MediaFrame variant="vintage" label="Legacy Wedding Video" artifacts />
+          <MediaFrame variant="vintage" label="Legacy Source Video" artifacts />
         </div>
 
         <AlgorithmCore

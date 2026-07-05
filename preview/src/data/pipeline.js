@@ -18,20 +18,20 @@ export const INTRO_BEATS = [
     id: 'problem-1',
     eyebrow: 'The Problem',
     headline: 'Some memories only exist\non degraded tape.',
-    sub: 'Legacy wedding footage — compressed, artifacted, fading with every playback.',
+    sub: 'Legacy video assets — compressed, artifacted, fading with every playback.',
     tone: 'vintage',
   },
   {
     id: 'problem-2',
     eyebrow: null,
     headline: 'Compression stole\nthe sharpness.',
-    sub: 'Fine detail lost. Colors washed out. Blocky AAC artifacts across every frame.',
+    sub: 'Fine detail lost. Colors washed out. Blocky mpeg artifacts across every frame.',
     tone: 'vintage',
   },
   {
     id: 'problem-3',
     eyebrow: null,
-    headline: "You can't\nre-shoot a wedding.",
+    headline: "You can't\nre-shoot a life event.",
     sub: 'The moment is gone. The original raw footage is gone. What remains is irreplaceable — but broken.',
     tone: 'vintage',
   },
@@ -108,7 +108,7 @@ export const STAGES = [
     icon: '👤',
     color: 'from-blue-600/30 to-indigo-900/20',
     description:
-      'RetinaFace detects faces; ArcFace ResNet-50 extracts pose-invariant 512-dim identity embeddings for wedding subjects.',
+      'RetinaFace detects faces; ArcFace ResNet-50 extracts pose-invariant 512-dim identity embeddings for primary subjects.',
     detail:
       'Largest face per image selected as primary subject. Face embeddings provide lighting-invariant identity matching CLIP alone cannot guarantee.',
     output: 'models/*_face_*.npy',
@@ -121,7 +121,7 @@ export const STAGES = [
     icon: '🔗',
     color: 'from-violet-600/30 to-purple-900/20',
     description:
-      'Ranks album photos per frame: final_score = 0.70 × face + 0.30 × CLIP. Wedding videos are identity-centric.',
+      'Ranks album photos per frame: final_score = 0.70 × face + 0.30 × CLIP. Identity-centric media is prioritized.',
     detail:
       'Batch cosine similarity across 411 frames × album photos. Top-K candidates logged with CLIPScore, FaceScore, and FinalScore to CSV.',
     output: 'advanced_matches.csv',
@@ -150,7 +150,7 @@ export const STAGES = [
       'Propagates restoration delta from representative frames to every frame in the scene — temporal coherence without per-frame AI.',
     detail:
       'Delta decomposed into low-freq + detail bands. Flow-warped with confidence from residual. Temporal smoothing prevents flicker within scenes.',
-    output: 'Restored_Wedding_silent.mp4',
+    output: 'Restored_Asset_silent.mp4',
   },
   {
     id: 8,
@@ -163,7 +163,7 @@ export const STAGES = [
       'Original AAC audio stream copied byte-for-byte into the reconstructed video. Zero re-encoding, ~30 seconds.',
     detail:
       'Stream copy preserves quality. -shortest flag handles any length discrepancy between video and audio tracks.',
-    output: 'Restored_Wedding_final.mp4',
+    output: 'Restored_Asset_final.mp4',
   },
 ]
 
