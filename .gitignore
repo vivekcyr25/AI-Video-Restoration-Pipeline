@@ -19,6 +19,7 @@
 *.wav
 *.aac
 *.mp3
+!preview/public/*.mp3
 *.flac
 
 # ── Generated model / embedding files ──────────
