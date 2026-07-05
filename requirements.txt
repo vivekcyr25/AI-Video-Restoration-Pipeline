@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  AI Video Restoration — Python Dependencies
+#  Install with:  pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Core numerical / data ─────────────────────────────────────────────────────
+numpy>=1.24.0
+pandas>=2.0.0
+tqdm>=4.65.0
+
+# ── Computer Vision ───────────────────────────────────────────────────────────
+opencv-python>=4.8.0
+
+# ── CLIP Visual Embeddings (OpenCLIP) ────────────────────────────────────────
+# Model used: ViT-B-32 / pretrained=laion2b_s34b_b79k
+open-clip-torch>=2.20.0
+
+# ── Deep Learning Backend ────────────────────────────────────────────────────
+# For GPU acceleration install the CUDA build of PyTorch separately:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+torch>=2.0.0
+
+# ── Face Detection & Embedding (InsightFace) ──────────────────────────────────
+# Model used: buffalo_l (downloaded automatically on first run)
+insightface>=0.7.3
+onnxruntime>=1.15.0          # CPU inference backend
+# For GPU: install onnxruntime-gpu instead of onnxruntime
+
+# ── Image I/O ─────────────────────────────────────────────────────────────────
+Pillow>=10.0.0
+
+# ── Optional: GPU ONNX backend ────────────────────────────────────────────────
+# onnxruntime-gpu>=1.15.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  System / External Dependencies (not pip-installable)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#  • FFmpeg >= 6.0
+#      Windows : https://www.gyan.dev/ffmpeg/builds/
+#      Linux   : sudo apt install ffmpeg
+#      macOS   : brew install ffmpeg
+#
+#  • PySceneDetect >= 0.6  (optional, for scene boundary detection)
+#      pip install scenedetect[opencv]
+#
+#  • Python >= 3.10 required (uses match/case, X | Y type hints)
+# ─────────────────────────────────────────────────────────────────────────────

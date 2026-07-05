@@ -1,0 +1,107 @@
+# ─────────────────────────────────────────────
+#  AI Video Restoration — .gitignore
+# ─────────────────────────────────────────────
+
+# ── Large video / audio files ──────────────────
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.wmv
+*.flv
+*.webm
+*.m4v
+*.mpg
+*.mpeg
+*.ts
+*.mts
+*.m2ts
+*.wav
+*.aac
+*.mp3
+*.flac
+
+# ── Generated model / embedding files ──────────
+models/*.npy
+models/*.pkl
+models/*.pt
+models/*.pth
+models/*.onnx
+Models/
+*.npy
+*.pkl
+
+# ── Output directories ──────────────────────────
+output/Restored_Frames/
+output/advanced_matches.csv
+output/matches.csv
+output/restore_log.csv
+Output/
+
+# ── Raw data (must be supplied by user) ────────
+data/raw/
+Representative_Frames/
+Albums/
+Albums_sample/
+
+# ── Python cache & bytecode ────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+
+# ── Virtual environments ────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env
+*.egg-info/
+dist/
+build/
+
+# ── Jupyter ────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── IDE / Editor ───────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── OS ─────────────────────────────────────────
+.DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# ── Logs ───────────────────────────────────────
+*.log
+logs/
+
+# ── Temporary / scratch ─────────────────────────
+tmp/
+temp/
+scratch/
+*.tmp
+*.bak
+*.orig
+
+# ── FFmpeg binaries (distributed separately) ───
+FFMEPGXpyRES_@6/
+ffmpeg.exe
+ffplay.exe
+ffprobe.exe
+
+# ── InsightFace model cache ────────────────────
+~/.insightface/
+.insightface/
+
+# ── Torch / HuggingFace caches ─────────────────
+.cache/
