@@ -40,7 +40,7 @@ re-shooting is not an option. This project answers the question:
 > *Can AI recover visual quality in a degraded video by leveraging
 > high-quality still photos taken at the same event?*
 
-The key insight: wedding photographers capture the same moments at full
+The key insight: Studio photographers capture the same moments at full
 quality. If we can match video frames to album photos with high accuracy
 (especially for the same people and scenes), we can use those photos as
 enhancement references for the corresponding video frames.
