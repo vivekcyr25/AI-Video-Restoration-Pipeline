@@ -184,7 +184,7 @@ export default function PipelineAnimation({ stages, activeStage, onStageClick })
       </div>
 
       <p className="mt-4 text-center text-sm text-white/50">
-        Degraded media enters the pipeline → AI matches album references → optical flow propagates restoration enhancement → restored video emerges
+        Degraded assets enter the pipeline → AI matches reference assets → optical flow propagates restoration → restored asset emerges
       </p>
     </div>
   )
