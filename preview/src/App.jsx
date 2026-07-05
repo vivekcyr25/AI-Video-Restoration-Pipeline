@@ -4,6 +4,7 @@ import IntroSequence from './components/IntroSequence'
 import ScrollWorkflow from './components/ScrollWorkflow'
 import FinalReveal from './components/FinalReveal'
 import StagePanel from './components/StagePanel'
+import BackgroundAudio from './components/BackgroundAudio'
 import { useGlobalScroll } from './hooks/useScroll'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
   return (
     <div className="relative">
       <ShaderBackground progress={shaderProgress} />
+      <BackgroundAudio />
 
       {/* Nav — fades in after first scroll */}
       <nav
