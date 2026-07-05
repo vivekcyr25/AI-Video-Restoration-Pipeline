@@ -117,12 +117,12 @@ export default function ScrollWorkflow({ onStageClick }) {
   return (
     <section
       ref={containerRef}
-      className="relative"
+      className="relative z-10 bg-[#050508]"
       style={{ height: `${sectionHeight}vh` }}
     >
-      <div className="sticky top-0 h-screen flex items-center py-20 will-change-transform">
+      <div className="sticky top-0 h-screen flex items-center py-16 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <p className="text-xs font-medium tracking-[0.25em] uppercase text-cyber-blue mb-3">
               How It Works
             </p>
@@ -134,8 +134,8 @@ export default function ScrollWorkflow({ onStageClick }) {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-            <div className="lg:sticky lg:top-24">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-10 items-center">
+            <div className="shrink-0">
               <PipelineVisual activeIndex={activeIndex} restoreAmount={restoreAmount} />
               <div className="mt-4 flex gap-1">
                 {STAGES.map((s, i) => (
@@ -152,23 +152,22 @@ export default function ScrollWorkflow({ onStageClick }) {
               </p>
             </div>
 
-            <div className="relative">
+            <div className="relative min-h-[280px]">
               <div className="absolute left-[5px] top-8 bottom-8 w-px bg-white/10">
                 <div
                   className="absolute top-0 left-0 w-full bg-gradient-to-b from-cyber-blue to-cyber-glow transition-[height] duration-200"
                   style={{ height: `${lineHeight}%` }}
                 />
               </div>
-              <div className="space-y-5">
-                {STAGES.map((stage, i) => (
-                  <StageCard
-                    key={stage.id}
-                    stage={stage}
-                    active={i === activeIndex}
-                    onClick={onStageClick}
-                  />
-                ))}
-              </div>
+              <StageCard
+                key={STAGES[activeIndex].id}
+                stage={STAGES[activeIndex]}
+                active
+                onClick={onStageClick}
+              />
+              <p className="mt-4 pl-8 text-[11px] font-mono text-white/30">
+                Stage {activeIndex + 1} of {STAGES.length} · tap for details
+              </p>
             </div>
           </div>
         </div>

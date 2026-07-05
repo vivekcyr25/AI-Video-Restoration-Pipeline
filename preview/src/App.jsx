@@ -46,7 +46,9 @@ export default function App() {
       <IntroSequence onProgress={setIntroProgress} />
 
       {/* Act 2: Scroll-driven connected workflow */}
-      <ScrollWorkflow onStageClick={setActiveStage} />
+      <div className="relative z-10 bg-[#050508]">
+        <ScrollWorkflow onStageClick={setActiveStage} />
+      </div>
 
       {/* Act 3: Final reveal */}
       <FinalReveal />
