@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-[#0a0a0f] text-white overflow-x-hidden;
+  }
+
+  ::selection {
+    @apply bg-cyber-blue/40 text-white;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/[0.06] backdrop-blur-xl border border-white/[0.08] shadow-lg;
+  }
+
+  .glass-hover {
+    @apply transition-all duration-300 hover:bg-white/[0.09] hover:border-white/[0.14];
+  }
+
+  .wwdc-card {
+    @apply glass rounded-3xl p-6;
+  }
+
+  .vintage-media {
+    filter: sepia(0.45) contrast(0.75) brightness(0.85) saturate(0.6);
+  }
+
+  .restored-media {
+    filter: contrast(1.05) brightness(1.02) saturate(1.1);
+  }
+}
+
+@keyframes restore-progress {
+  0% { clip-path: inset(0 100% 0 0); }
+  45% { clip-path: inset(0 50% 0 0); }
+  55% { clip-path: inset(0 50% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-2%, -2%); }
+  30% { transform: translate(1%, -1%); }
+  50% { transform: translate(-1%, 2%); }
+  70% { transform: translate(2%, 1%); }
+  90% { transform: translate(-2%, 2%); }
+}
+
+.animate-restore {
+  animation: restore-progress 6s ease-in-out infinite;
+}
+
+.animate-grain {
+  animation: grain 0.5s steps(2) infinite;
+}
