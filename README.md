@@ -113,11 +113,11 @@ Input Video
     │
     ├─ Stage 6 ── Video Reconstruction
     │               Optical flow propagation of enhancement delta
-    │               Output: output/Restored_Wedding_silent.mp4
+    │               Output: output/Restored_silent.mp4
     │
     └─ Stage 7 ── FFmpeg audio mux
                     Stream-copy original AAC audio
-                    Output: output/Restored_Wedding_final.mp4
+                    Output: output/Restored_final.mp4
 ```
 
 For a detailed technical explanation of each stage including algorithms,
