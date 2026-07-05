@@ -10,7 +10,7 @@
   }
 
   body {
-    @apply bg-[#0a0a0f] text-white overflow-x-hidden;
+    @apply bg-[#050508] text-white overflow-x-hidden;
   }
 
   ::selection {
@@ -20,46 +20,31 @@
 
 @layer components {
   .glass {
-    @apply bg-white/[0.06] backdrop-blur-xl border border-white/[0.08] shadow-lg;
+    @apply bg-white/[0.04] backdrop-blur-2xl border border-white/[0.07];
   }
 
   .glass-hover {
-    @apply transition-all duration-300 hover:bg-white/[0.09] hover:border-white/[0.14];
-  }
-
-  .wwdc-card {
-    @apply glass rounded-3xl p-6;
+    @apply transition-all duration-300 hover:bg-white/[0.07] hover:border-white/[0.12];
   }
 
   .vintage-media {
-    filter: sepia(0.45) contrast(0.75) brightness(0.85) saturate(0.6);
+    filter: sepia(0.4) contrast(0.78) brightness(0.82) saturate(0.55);
   }
 
   .restored-media {
-    filter: contrast(1.05) brightness(1.02) saturate(1.1);
+    filter: contrast(1.08) brightness(1.03) saturate(1.15);
   }
-}
-
-@keyframes restore-progress {
-  0% { clip-path: inset(0 100% 0 0); }
-  45% { clip-path: inset(0 50% 0 0); }
-  55% { clip-path: inset(0 50% 0 0); }
-  100% { clip-path: inset(0 0 0 0); }
 }
 
 @keyframes grain {
   0%, 100% { transform: translate(0, 0); }
-  10% { transform: translate(-2%, -2%); }
-  30% { transform: translate(1%, -1%); }
-  50% { transform: translate(-1%, 2%); }
-  70% { transform: translate(2%, 1%); }
-  90% { transform: translate(-2%, 2%); }
-}
-
-.animate-restore {
-  animation: restore-progress 6s ease-in-out infinite;
+  25% { transform: translate(-1%, 1%); }
+  50% { transform: translate(1%, -1%); }
+  75% { transform: translate(-1%, -1%); }
 }
 
 .animate-grain {
-  animation: grain 0.5s steps(2) infinite;
+  animation: grain 0.4s steps(2) infinite;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
 }

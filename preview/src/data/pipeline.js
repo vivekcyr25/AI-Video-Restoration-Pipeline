@@ -13,6 +13,44 @@ export const PROJECT = {
   },
 }
 
+export const INTRO_BEATS = [
+  {
+    id: 'problem-1',
+    eyebrow: 'The Problem',
+    headline: 'Some memories only exist\non degraded tape.',
+    sub: 'Legacy wedding footage — compressed, artifacted, fading with every playback.',
+    tone: 'vintage',
+  },
+  {
+    id: 'problem-2',
+    eyebrow: null,
+    headline: 'Compression stole\nthe sharpness.',
+    sub: 'Fine detail lost. Colors washed out. Blocky AAC artifacts across every frame.',
+    tone: 'vintage',
+  },
+  {
+    id: 'problem-3',
+    eyebrow: null,
+    headline: "You can't\nre-shoot a wedding.",
+    sub: 'The moment is gone. The original raw footage is gone. What remains is irreplaceable — but broken.',
+    tone: 'vintage',
+  },
+  {
+    id: 'insight',
+    eyebrow: 'The Insight',
+    headline: 'But the photographer\nwas there.',
+    sub: 'High-quality album photos captured the same moments — same faces, same scenes — at full resolution.',
+    tone: 'transition',
+  },
+  {
+    id: 'solution',
+    eyebrow: 'The Solution',
+    headline: 'A lighting-invariant\nrestoration algorithm.',
+    sub: 'Match degraded video frames to album references using CLIP semantics + face identity. Propagate recovery across every frame.',
+    tone: 'modern',
+  },
+]
+
 export const TECH_STACK = [
   { name: 'FFmpeg 8.x', role: 'Video processing & audio mux' },
   { name: 'OpenCLIP ViT-B-32', role: '512-dim semantic embeddings' },
