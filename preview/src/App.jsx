@@ -53,8 +53,9 @@ export default function App() {
       {/* Act 3: Final reveal */}
       <FinalReveal />
 
-      <footer className="text-center py-10 text-xs text-white/25 border-t border-white/[0.04]">
-        MIT License · Preserving irreplaceable media assets through AI
+      <footer className="text-center py-10 px-4 text-xs text-white/25 border-t border-white/[0.04] space-y-1.5">
+        <p>MIT License · Preserving irreplaceable media assets through AI</p>
+        <p className="text-white/35">Mastered and engineered by Vivek Sharma</p>
       </footer>
 
       {activeStage && (
