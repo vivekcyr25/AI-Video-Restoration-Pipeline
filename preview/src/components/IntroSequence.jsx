@@ -38,19 +38,18 @@ export default function IntroSequence({ onProgress }) {
         className="sticky top-0 h-screen flex items-center justify-center overflow-hidden bg-[#050508]"
         style={{ opacity: exitOpacity }}
       >
-        <div className="relative w-full max-w-4xl mx-auto px-6 h-full max-h-[720px] flex items-center justify-center">
+        <div className="relative w-full max-w-4xl mx-auto px-6 h-full max-h-[720px]">
           {INTRO_BEATS.map((beat, i) => {
-            const style = getBeatStyles(progress, i, INTRO_BEATS.length)
+            const { visible, ...cssStyle } = getBeatStyles(progress, i, INTRO_BEATS.length)
             const isSolution = beat.id === 'solution'
             const isVintage = beat.tone === 'vintage'
-
-            if (!style.visible) return null
 
             return (
               <div
                 key={beat.id}
                 className="absolute inset-0 flex flex-col items-center justify-center px-2"
-                style={style}
+                style={cssStyle}
+                aria-hidden={!visible}
               >
                 {beat.eyebrow && (
                   <p

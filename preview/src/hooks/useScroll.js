@@ -87,21 +87,25 @@ function beatState(progress, index, total) {
   const end = (index + 1) / total
   const width = end - start
 
-  if (progress < start - width * 0.05 || progress > end + width * 0.05) {
+  if (progress < start - width * 0.08 || progress > end + width * 0.08) {
     return { opacity: 0, visible: false, zIndex: 0 }
   }
 
-  const local = (progress - start) / width
+  const local = Math.max(0, Math.min(1, (progress - start) / width))
   let opacity = 1
 
-  if (local < 0.18) opacity = local / 0.18
-  else if (local > 0.82) opacity = (1 - local) / 0.18
+  if (local < 0.2) {
+    opacity = index === 0 ? 1 : local / 0.2
+  }
+  if (local > 0.8) {
+    opacity = (1 - local) / 0.2
+  }
 
   opacity = Math.max(0, Math.min(1, opacity))
 
   return {
     opacity,
-    visible: opacity > 0.02,
+    visible: opacity > 0.01,
     zIndex: Math.round(opacity * 100),
   }
 }
@@ -112,6 +116,7 @@ export function getBeatStyles(progress, index, total) {
 
   return {
     opacity,
+    visible,
     zIndex,
     visibility: visible ? 'visible' : 'hidden',
     transform: `translate3d(0, ${translateY}px, 0)`,
