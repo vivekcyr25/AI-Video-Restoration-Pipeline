@@ -56,10 +56,10 @@ export default function FinalReveal() {
             Final Output
           </p>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight mb-4">
-            Memory, recovered.
+            Asset, recovered.
           </h2>
           <p className="text-white/50 max-w-xl mx-auto">
-            {PROJECT.stats.duration} of source footage · {PROJECT.stats.scenes} scenes ·
+            {PROJECT.stats.duration} of source asset · {PROJECT.stats.scenes} scenes ·
             lighting-invariant matching · temporally coherent optical flow reconstruction
           </p>
         </div>
@@ -72,11 +72,11 @@ export default function FinalReveal() {
             transform: inView ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.98)',
           }}
         >
-          <ComparePanel variant="before" label="Before" badge="DEGRADED · AAC" />
+          <ComparePanel variant="before" label="Before" badge="DEGRADED ASSET · AAC" />
           <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full glass items-center justify-center text-cyber-glow border border-cyber-blue/30 shadow-[0_0_30px_rgba(0,113,227,0.2)]">
             →
           </div>
-          <ComparePanel variant="after" label="After" badge="RESTORED · FINAL" />
+          <ComparePanel variant="after" label="After" badge="RESTORED ASSET · FINAL" />
         </div>
 
         {/* Stats */}

@@ -1,8 +1,8 @@
 export const PROJECT = {
   name: 'AI Video Restoration Pipeline',
-  tagline: 'Recover irreplaceable memories from degraded legacy video',
+  tagline: 'Recover irreplaceable media assets from degraded legacy video',
   question:
-    'Can AI recover visual quality in a degraded video by leveraging high-quality still photos taken at the same event?',
+    'Can AI recover visual quality in a degraded video asset by leveraging high-quality reference assets from the same event?',
   stats: {
     scenes: 411,
     duration: '2h 7m',
@@ -17,7 +17,7 @@ export const INTRO_BEATS = [
   {
     id: 'problem-1',
     eyebrow: 'The Problem',
-    headline: 'Some memories only exist\non degraded tape.',
+    headline: 'Some assets only exist\non degraded tape.',
     sub: 'Legacy video assets — compressed, artifacted, fading with every playback.',
     tone: 'vintage',
   },
@@ -25,29 +25,30 @@ export const INTRO_BEATS = [
     id: 'problem-2',
     eyebrow: null,
     headline: 'Compression stole\nthe sharpness.',
-    sub: 'Fine detail lost. Colors washed out. Blocky mpeg artifacts across every frame.',
+    sub: 'Fine detail lost. Colors washed out. Blocky codec artifacts across every frame.',
     tone: 'vintage',
   },
   {
     id: 'problem-3',
     eyebrow: null,
-    headline: "You can't\nre-shoot a life event.",
-    sub: 'The moment is gone. The original raw footage is gone. What remains is irreplaceable — but broken.',
+    headline: "You can't\nre-capture the asset.",
+    sub: 'The moment is gone. The original raw data is gone. What remains is irreplaceable — but broken.',
     tone: 'vintage',
   },
   {
     id: 'insight',
     eyebrow: 'The Insight',
-    headline: 'But the photographer\nwas there.',
-    sub: 'High-quality album photos captured the same moments — same faces, same scenes — at full resolution.',
+    headline: 'But reference assets\nstill exist.',
+    sub: 'High-quality source assets captured the same moments — same faces, same scenes — at full resolution.',
     tone: 'transition',
   },
   {
     id: 'solution',
     eyebrow: 'The Solution',
-    headline: 'A lighting-invariant\nrestoration algorithm.',
-    sub: 'Match degraded video frames to album references using CLIP semantics + face identity. Propagate recovery across every frame.',
+    headline: null,
+    sub: 'Match degraded video frames to reference assets using CLIP semantics + face identity. Propagate recovery across every frame.',
     tone: 'modern',
+    interactive: true,
   },
 ]
 
@@ -69,7 +70,7 @@ export const STAGES = [
     icon: '🎬',
     color: 'from-amber-600/40 to-orange-800/20',
     description:
-      'Analyzes inter-frame histogram differences to divide the video into shots. Reduces billions of frame comparisons to ~411 representative scenes.',
+      'Analyzes inter-frame histogram differences to divide the video asset into shots. Reduces billions of frame comparisons to ~411 representative scenes.',
     detail:
       'ContentDetector flags scene boundaries when HSV histogram delta exceeds threshold 27.0. Each scene gets one midpoint frame for AI processing.',
     output: 'scenes.csv',
@@ -95,7 +96,7 @@ export const STAGES = [
     icon: '🧠',
     color: 'from-teal-600/30 to-cyan-900/20',
     description:
-      'Encodes album photos and video frames into 512-dimensional semantic vectors capturing scene, objects, and composition.',
+      'Encodes reference assets and video frames into 512-dimensional semantic vectors capturing scene, objects, and composition.',
     detail:
       'LAION-2B pretrained ViT-B-32. L2-normalized embeddings enable efficient cosine similarity via matrix multiplication.',
     output: 'models/*.npy',
@@ -121,9 +122,9 @@ export const STAGES = [
     icon: '🔗',
     color: 'from-violet-600/30 to-purple-900/20',
     description:
-      'Ranks album photos per frame: final_score = 0.70 × face + 0.30 × CLIP. Identity-centric media is prioritized.',
+      'Ranks reference assets per frame: final_score = 0.70 × face + 0.30 × CLIP. Identity-centric assets are prioritized.',
     detail:
-      'Batch cosine similarity across 411 frames × album photos. Top-K candidates logged with CLIPScore, FaceScore, and FinalScore to CSV.',
+      'Batch cosine similarity across 411 frames × reference assets. Top-K candidates logged with CLIPScore, FaceScore, and FinalScore to CSV.',
     output: 'advanced_matches.csv',
   },
   {
@@ -134,7 +135,7 @@ export const STAGES = [
     icon: '✨',
     color: 'from-emerald-600/30 to-green-900/20',
     description:
-      'Face-guided affine alignment + high-frequency detail transfer from matched album photos. CLAHE, bilateral filter, unsharp mask.',
+      'Face-guided affine alignment + high-frequency detail transfer from matched reference assets. CLAHE, bilateral filter, unsharp mask.',
     detail:
       'Confidence maps from Canny edges, Sobel gradients, and texture similarity. Detail gain clamped to prevent over-restoration. SIFT v1 fallback.',
     output: 'Restored_Frames/',
@@ -160,7 +161,7 @@ export const STAGES = [
     icon: '🎵',
     color: 'from-slate-500/30 to-zinc-800/20',
     description:
-      'Original AAC audio stream copied byte-for-byte into the reconstructed video. Zero re-encoding, ~30 seconds.',
+      'Original AAC audio stream copied byte-for-byte into the reconstructed video asset. Zero re-encoding, ~30 seconds.',
     detail:
       'Stream copy preserves quality. -shortest flag handles any length discrepancy between video and audio tracks.',
     output: 'Restored_Asset_final.mp4',

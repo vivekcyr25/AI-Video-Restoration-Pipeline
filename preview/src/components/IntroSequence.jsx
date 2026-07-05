@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { INTRO_BEATS } from '../data/pipeline'
 import { useScrollProgress, getBeatStyles } from '../hooks/useScroll'
+import InteractiveInvariant from './InteractiveInvariant'
 
 function ScrollHint({ visible }) {
   return (
@@ -38,7 +39,7 @@ export default function IntroSequence({ onProgress }) {
             return (
               <div
                 key={beat.id}
-                className="absolute inset-0 flex flex-col items-center justify-center transition-none"
+                className="absolute inset-0 flex flex-col items-center justify-center"
                 style={style}
                 aria-hidden={style.opacity < 0.1}
               >
@@ -52,17 +53,17 @@ export default function IntroSequence({ onProgress }) {
                   </p>
                 )}
 
-                <h1
-                  className={`text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight leading-[1.08] whitespace-pre-line mb-6 ${
-                    isSolution
-                      ? 'bg-gradient-to-b from-white via-cyber-glow to-cyber-blue bg-clip-text text-transparent'
-                      : isVintage
-                        ? 'text-amber-100/90'
-                        : 'text-white'
-                  }`}
-                >
-                  {beat.headline}
-                </h1>
+                {beat.interactive ? (
+                  <InteractiveInvariant />
+                ) : (
+                  <h1
+                    className={`text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight leading-[1.08] whitespace-pre-line mb-6 ${
+                      isVintage ? 'text-amber-100/90' : 'text-white'
+                    }`}
+                  >
+                    {beat.headline}
+                  </h1>
+                )}
 
                 <p
                   className={`text-base sm:text-lg md:text-xl max-w-xl mx-auto leading-relaxed font-light ${

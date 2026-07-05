@@ -52,7 +52,7 @@ export default function App() {
       <FinalReveal />
 
       <footer className="text-center py-10 text-xs text-white/25 border-t border-white/[0.04]">
-        MIT License · Preserving irreplaceable memories through AI
+        MIT License · Preserving irreplaceable media assets through AI
       </footer>
 
       {activeStage && (
