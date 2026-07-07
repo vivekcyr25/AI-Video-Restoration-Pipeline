@@ -1,3 +1,5 @@
+> See also: [Interactive preview site](preview.md)
+
 # Pipeline Architecture
 
 This document describes the full 9-stage AI Video Restoration pipeline using a
@@ -112,3 +114,4 @@ frame to all neighboring frames in the scene, preserving temporal coherence.
   geometric alignment between album and frame.
 - **v2** (Face affine): More accurate when both images contain large, matching
   faces; uses face-landmark-guided affine transform for sub-pixel alignment.
+
