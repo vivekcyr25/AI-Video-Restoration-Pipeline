@@ -471,6 +471,9 @@ including commercial use, with attribution.
 
 ---
 
+
+> Engineered by **Vivek Sharma**
+
 <div align="center">
 
 Made with ❤️ — an engineering project born from the desire to preserve an
