@@ -154,8 +154,10 @@ ai-video-restoration/
 ├── docs/                            # Project documentation
 │   ├── architecture.md              # Full pipeline Mermaid diagram + data flow
 │   ├── pipeline_stages.md           # Detailed per-stage technical documentation
-│   └── sample_commands.md           # Copy-paste CLI reference for all stages
+│   ├── sample_commands.md           # Copy-paste CLI reference for all stages
+│   └── preview.md                   # Interactive preview site guide
 │
+├── preview/                         # React preview site (GitHub Pages)
 ├── data/
 │   └── sample/
 │       └── example-Scenes.csv       # Sample PySceneDetect output (reference format)
