@@ -58,6 +58,7 @@ export default function App() {
       <footer className="text-center py-10 px-4 text-xs text-white/25 border-t border-white/[0.04] space-y-1.5">
         <p>MIT License · Preserving irreplaceable media assets through AI</p>
         <p className="text-white/35">Mastered and engineered by Vivek Sharma</p>
+        <p className="text-white/20 text-[10px]">Music: Galaxy&apos;s Endless Expanse · FesliyanStudios.com</p>
       </footer>
 
       {activeStage && (
