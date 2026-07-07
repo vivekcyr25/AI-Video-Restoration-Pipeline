@@ -1,5 +1,7 @@
 # Sample Commands Reference
 
+> Preview the algorithm interactively: [preview.md](preview.md)
+
 Practical, copy-paste commands for running every stage of the pipeline.
 
 ---
@@ -265,3 +267,4 @@ python -c "import torch; print('CUDA:', torch.cuda.is_available())"
 # Check GPU availability for ONNX (InsightFace)
 python -c "import onnxruntime; print(onnxruntime.get_available_providers())"
 ```
+
