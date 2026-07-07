@@ -9,6 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![OpenCLIP](https://img.shields.io/badge/OpenCLIP-ViT--B--32-purple)](https://github.com/mlfoundations/open_clip)
 [![InsightFace](https://img.shields.io/badge/InsightFace-buffalo__l-orange)](https://github.com/deepinsight/insightface)
+[![Live Preview](https://img.shields.io/badge/Live_Preview-GitHub_Pages-blue?style=flat-square)](https://vivekcyr25.github.io/AI-Video-Restoration-Pipeline/)
 
 ---
 
@@ -124,6 +125,8 @@ For a detailed technical explanation of each stage including algorithms,
 parameters, and data flow, see [docs/pipeline_stages.md](docs/pipeline_stages.md).
 
 For the Mermaid architecture diagram, see [docs/architecture.md](docs/architecture.md).
+
+For the interactive algorithm preview site, see [docs/preview.md](docs/preview.md) or visit the [live demo](https://vivekcyr25.github.io/AI-Video-Restoration-Pipeline/).
 
 ---
 
