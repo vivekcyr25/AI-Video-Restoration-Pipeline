@@ -32,6 +32,7 @@ There are several ways to contribute to this project:
 |---|---|
 | 🐛 Bug Fix | Fix incorrect optical flow parameters, broken CSV parsing |
 | 📝 Documentation | Improve README, add inline comments, fix typos |
+| 🎨 Preview Site | UI/UX improvements to the `preview/` React app |
 | ⚡ Performance | Speed up embedding generation, reduce memory usage |
 | 🧪 Testing | Add unit tests for utility functions |
 | 🔧 New Feature | Add a new restoration method, support additional video formats |
