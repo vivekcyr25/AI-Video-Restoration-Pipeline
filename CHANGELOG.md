@@ -14,6 +14,11 @@ All notable changes to this project are documented here.
 - Preview copy uses generic asset terminology
 - Improved intro beat visibility and section overlap fixes
 
+### Documentation
+- Added CHANGELOG, CREDITS, and preview development guide
+- Linked live demo from README
+
 ### Credits
 - Preview engineered by Vivek Sharma
 - Background music: Galaxy's Endless Expanse — FesliyanStudios.com
+
