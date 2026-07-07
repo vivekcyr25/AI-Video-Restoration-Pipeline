@@ -39,6 +39,10 @@ There are several ways to contribute to this project:
 
 ---
 
+## Preview Development
+
+See [preview/README.md](preview/README.md) for running the demo site locally.
+
 ## Development Setup
 
 ### Prerequisites
@@ -142,3 +146,4 @@ Use the appropriate issue template if one is available.
 
 By contributing to this project, you agree that your contributions will be
 licensed under the [MIT License](LICENSE).
+
