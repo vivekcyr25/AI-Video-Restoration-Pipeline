@@ -1,3 +1,5 @@
+> Visual walkthrough: [preview.md](preview.md)
+
 # Pipeline Stages — Detailed Documentation
 
 Complete technical reference for every processing stage in the AI Video
@@ -371,3 +373,4 @@ ffmpeg \
 
 `-c:v copy` and `-c:a copy` ensure no re-encoding; both streams are stream-copied.
 `-shortest` truncates to the shorter stream, handling any length discrepancy.
+
