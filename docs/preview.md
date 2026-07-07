@@ -33,3 +33,7 @@ Output is written to `preview/dist/` and deployed automatically via GitHub Actio
 - 8-stage pipeline walkthrough
 - Before/after asset comparison
 
+## Deployment
+
+Pushes to `main` that touch `preview/` trigger the GitHub Actions Pages workflow automatically.
+

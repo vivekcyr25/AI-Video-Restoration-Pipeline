@@ -1,1 +1,5 @@
-"""`nAI Video Restoration — Utility Modules`n`nShared helpers for the restoration pipeline scripts.`n"""`n
+"""
+AI Video Restoration — Utility Modules
+
+Shared helpers for the restoration pipeline scripts.
+"""
