@@ -2,6 +2,8 @@
   "name": "ai-video-restoration-preview",
   "private": true,
   "version": "1.0.0",
+  "description": "Interactive algorithm preview for the AI Video Restoration Pipeline",
+  "author": "Vivek Sharma",
   "type": "module",
   "scripts": {
     "dev": "vite",
