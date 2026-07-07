@@ -25,3 +25,11 @@ Output is written to `preview/dist/` and deployed automatically via GitHub Actio
 - Tailwind CSS 3
 - WebGL fragment shaders (background)
 - GitHub Pages (Actions deploy)
+
+## Features
+
+- Scroll-driven intro narrative
+- Interactive lighting-invariant explainer
+- 8-stage pipeline walkthrough
+- Before/after asset comparison
+
