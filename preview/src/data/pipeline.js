@@ -1,4 +1,4 @@
-export const PROJECT = {
+// Pipeline content for the interactive preview site`nexport const PROJECT = {
   name: 'AI Video Restoration Pipeline',
   tagline: 'Recover irreplaceable media assets from degraded legacy video',
   question:
@@ -175,3 +175,4 @@ export const FEATURES = [
   'Optical flow propagation — temporally coherent output',
   'Lossless audio preservation — original AAC stream copied',
 ]
+
