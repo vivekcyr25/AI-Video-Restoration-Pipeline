@@ -17,3 +17,8 @@ See [README.md](README.md#-credits) for the full list of pipeline dependencies a
 
 - **Live URL:** https://vivekcyr25.github.io/AI-Video-Restoration-Pipeline/
 
+
+## Preview UI
+
+- Scroll narrative, WebGL shaders, and pipeline animation by Vivek Sharma
+
