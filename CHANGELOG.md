@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.0] - 2026-07-07
+
+### Added
+- Documentation batch: preview guides, credits, changelog
+
 ## [Unreleased]
 
 ### Added
@@ -21,4 +26,5 @@ All notable changes to this project are documented here.
 ### Credits
 - Preview engineered by Vivek Sharma
 - Background music: Galaxy's Endless Expanse — FesliyanStudios.com
+
 
