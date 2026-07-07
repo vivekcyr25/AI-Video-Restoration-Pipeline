@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Default volume: 30% — low but audible ambient background`nconst VOLUME = 0.3
+// Default volume: 30% — low but audible ambient background
+const VOLUME = 0.3
 const MUSIC_SRC = `${import.meta.env.BASE_URL}background-music.mp3`
 
 export default function BackgroundAudio() {
