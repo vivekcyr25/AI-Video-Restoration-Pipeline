@@ -21,3 +21,7 @@ npm run build
 
 Background music plays at 30% volume. Use the speaker button to mute/unmute.
 
+## Deploy
+
+Changes under `preview/` are published through the GitHub Pages workflow on `main`.
+
