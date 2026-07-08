@@ -20,6 +20,7 @@ npm run build
 ## Audio
 
 Background music plays at 30% volume. Use the speaker button to mute/unmute.
+Autoplay may wait for the first click or scroll depending on browser policy.
 
 ## Deploy
 
