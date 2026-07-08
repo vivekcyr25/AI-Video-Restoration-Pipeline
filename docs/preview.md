@@ -32,6 +32,10 @@ Output is written to `preview/dist/` and deployed automatically via GitHub Actio
 - WebGL fragment shaders (background)
 - GitHub Pages (Actions deploy)
 
+## Browser Support
+
+The preview is optimized for current Chromium, Firefox, and Safari releases with WebGL enabled.
+
 ## Audio note
 Background music may require a first scroll/click to start due to browser autoplay rules. Use the mute button to control it.
 
