@@ -103,6 +103,12 @@ export default function ShaderBackground({ progress = 0 }) {
     const gl = canvas.getContext('webgl')
     if (!gl) return
 
+    // If user prefers reduced motion, avoid continuous animation frames.
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
     const compile = (type, source) => {
       const shader = gl.createShader(type)
       gl.shaderSource(shader, source)
@@ -128,7 +134,7 @@ export default function ShaderBackground({ progress = 0 }) {
     const resLoc = gl.getUniformLocation(program, 'u_resolution')
     const progLoc = gl.getUniformLocation(program, 'u_progress')
 
-    let frame
+    let frame = null
     const start = performance.now()
 
     const resize = () => {
@@ -147,10 +153,18 @@ export default function ShaderBackground({ progress = 0 }) {
 
     resize()
     window.addEventListener('resize', resize)
-    frame = requestAnimationFrame(render)
+
+    if (prefersReducedMotion) {
+      gl.uniform1f(timeLoc, 0)
+      gl.uniform2f(resLoc, canvas.width, canvas.height)
+      gl.uniform1f(progLoc, progressRef.current)
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    } else {
+      frame = requestAnimationFrame(render)
+    }
 
     return () => {
-      cancelAnimationFrame(frame)
+      if (frame) cancelAnimationFrame(frame)
       window.removeEventListener('resize', resize)
     }
   }, [])
