@@ -60,3 +60,7 @@ Background music may require a first scroll/click to start due to browser autopl
 
 Pushes to `main` that touch `preview/` trigger the GitHub Actions Pages workflow automatically.
 
+## Accessibility
+
+The preview includes labeled controls and reduced-motion handling for the animated shader background.
+
