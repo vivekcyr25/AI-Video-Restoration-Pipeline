@@ -17,6 +17,12 @@ Built with React, Tailwind CSS, and WebGL shaders.
 npm run build
 ```
 
+## Controls
+
+- Scroll to advance the narrative
+- Click the stage card for more detail
+- Use the speaker button to mute/unmute music
+
 ## Audio
 
 Background music plays at 30% volume. Use the speaker button to mute/unmute.
