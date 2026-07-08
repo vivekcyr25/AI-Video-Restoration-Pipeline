@@ -26,6 +26,9 @@ Output is written to `preview/dist/` and deployed automatically via GitHub Actio
 - WebGL fragment shaders (background)
 - GitHub Pages (Actions deploy)
 
+## Audio note
+Background music may require a first scroll/click to start due to browser autoplay rules. Use the mute button to control it.
+
 ## Features
 
 - Scroll-driven intro narrative
