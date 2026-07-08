@@ -19,7 +19,10 @@ const StageCard = memo(function StageCard({ stage, active, onClick }) {
       />
 
       <button
+        type="button"
         onClick={() => onClick(stage.id)}
+        aria-label={`Show Stage ${stage.id}: ${stage.label}`}
+        title={`Stage ${stage.id}: ${stage.label}`}
         className={`w-full text-left rounded-2xl p-5 sm:p-6 border transition-colors duration-200 ${
           active
             ? 'border-cyber-blue/30 bg-white/[0.07]'
