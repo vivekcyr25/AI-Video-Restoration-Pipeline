@@ -32,3 +32,8 @@ Autoplay may wait for the first click or scroll depending on browser policy.
 
 Changes under `preview/` are published through the GitHub Pages workflow on `main`.
 
+## Files
+
+- `src/components/` contains UI building blocks
+- `src/data/pipeline.js` holds the preview copy and stage data
+
