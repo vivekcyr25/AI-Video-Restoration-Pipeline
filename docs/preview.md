@@ -51,6 +51,11 @@ Background music may require a first scroll/click to start due to browser autopl
 - 8-stage pipeline walkthrough
 - Before/after asset comparison
 
+## Key Files
+
+- `src/App.jsx` for page composition
+- `src/components/ShaderBackground.jsx` for the WebGL backdrop
+
 ## Deployment
 
 Pushes to `main` that touch `preview/` trigger the GitHub Actions Pages workflow automatically.
