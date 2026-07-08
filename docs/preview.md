@@ -2,6 +2,12 @@
 
 Live demo: **https://vivekcyr25.github.io/AI-Video-Restoration-Pipeline/**
 
+## Requirements
+
+- Node.js 20+
+- npm 10+
+- Modern browser with WebGL enabled
+
 ## Local Development
 
 ```bash
