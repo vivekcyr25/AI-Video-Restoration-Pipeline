@@ -42,6 +42,7 @@ Background music may require a first scroll/click to start due to browser autopl
 ## Troubleshooting
 
 - If music does not start, click once anywhere on the page or use the speaker button.
+- If development changes do not appear, restart `npm run dev` to refresh Vite state.
 
 ## Features
 
