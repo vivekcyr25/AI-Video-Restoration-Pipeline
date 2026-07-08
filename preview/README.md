@@ -11,6 +11,12 @@ npm run dev
 
 Built with React, Tailwind CSS, and WebGL shaders.
 
+## Build
+
+```bash
+npm run build
+```
+
 ## Audio
 
 Background music plays at 30% volume. Use the speaker button to mute/unmute.
