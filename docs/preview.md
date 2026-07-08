@@ -39,6 +39,10 @@ The preview is optimized for current Chromium, Firefox, and Safari releases with
 ## Audio note
 Background music may require a first scroll/click to start due to browser autoplay rules. Use the mute button to control it.
 
+## Troubleshooting
+
+- If music does not start, click once anywhere on the page or use the speaker button.
+
 ## Features
 
 - Scroll-driven intro narrative
