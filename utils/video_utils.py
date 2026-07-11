@@ -295,6 +295,75 @@ def run_ffprobe(video_path: Path) -> str:
     return result.stdout
 
 
+def get_codec_info(video_path: Path) -> dict:
+    """
+    Return a structured summary of codec and container information for a video.
+
+    Uses ``ffprobe`` under the hood and parses the JSON output to extract the
+    most commonly needed fields.  Falls back to ``"unknown"`` for any field
+    that ffprobe does not report.
+
+    Args:
+        video_path: Path to the video file.
+
+    Returns:
+        dict with keys:
+            video_codec   — e.g. ``"h264"``
+            pixel_fmt     — e.g. ``"yuv420p"``
+            bit_rate_kbps — overall container bit-rate in kbps (int or None)
+            audio_codec   — e.g. ``"aac"`` or ``None`` if no audio stream
+    """
+    import json
+
+    raw = run_ffprobe(video_path)
+    if not raw.strip():
+        return {
+            "video_codec": "unknown",
+            "pixel_fmt": "unknown",
+            "bit_rate_kbps": None,
+            "audio_codec": None,
+        }
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {
+            "video_codec": "unknown",
+            "pixel_fmt": "unknown",
+            "bit_rate_kbps": None,
+            "audio_codec": None,
+        }
+
+    streams = data.get("streams", [])
+    fmt = data.get("format", {})
+
+    video_codec = "unknown"
+    pixel_fmt = "unknown"
+    audio_codec = None
+
+    for stream in streams:
+        ctype = stream.get("codec_type", "")
+        if ctype == "video" and video_codec == "unknown":
+            video_codec = stream.get("codec_name", "unknown")
+            pixel_fmt = stream.get("pix_fmt", "unknown")
+        elif ctype == "audio" and audio_codec is None:
+            audio_codec = stream.get("codec_name")
+
+    bit_rate_raw = fmt.get("bit_rate")
+    bit_rate_kbps: Optional[int] = None
+    if bit_rate_raw is not None:
+        try:
+            bit_rate_kbps = int(bit_rate_raw) // 1000
+        except (ValueError, TypeError):
+            pass
+
+    return {
+        "video_codec": video_codec,
+        "pixel_fmt": pixel_fmt,
+        "bit_rate_kbps": bit_rate_kbps,
+        "audio_codec": audio_codec,
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Image resize helpers
 # ─────────────────────────────────────────────────────────────────────────────
