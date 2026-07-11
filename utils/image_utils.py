@@ -358,3 +358,66 @@ def edge_agreement(
     if union == 0:
         return 1.0  # Both images have no edges → trivially identical
     return float(intersection) / float(union)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Enhancement helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def clahe_enhance(
+    image: np.ndarray,
+    clip_limit: float = 2.0,
+    tile_grid_size: tuple[int, int] = (8, 8),
+) -> np.ndarray:
+    """
+    Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to the
+    L channel of *image* in CIE L*a*b* colour space.
+
+    This is the same enhancement used in the restoration stages
+    (``06_restore_frame.py``, ``07_restore_frame_v2.py``) and is extracted
+    here so it can be reused and tested independently.
+
+    Args:
+        image:          ``(H, W, 3)`` uint8 array in RGB order.
+        clip_limit:     CLAHE clip limit (higher = stronger contrast; default 2.0).
+        tile_grid_size: Grid size for tile-based histogram equalization.
+
+    Returns:
+        ``(H, W, 3)`` uint8 array in RGB order with enhanced luminance.
+    """
+    bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2Lab)
+    l_channel, a_channel, b_channel = cv2.split(lab)
+
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+    l_enhanced = clahe.apply(l_channel)
+
+    lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
+    bgr_enhanced = cv2.cvtColor(lab_enhanced, cv2.COLOR_Lab2BGR)
+    return cv2.cvtColor(bgr_enhanced, cv2.COLOR_BGR2RGB)
+
+
+def unsharp_mask(
+    image: np.ndarray,
+    strength: float = 0.5,
+    blur_sigma: float = 1.0,
+    blur_kernel: int = 5,
+) -> np.ndarray:
+    """
+    Apply an unsharp mask to sharpen *image*.
+
+    Unsharp masking subtracts a blurred version from the original to
+    amplify high-frequency detail.
+
+    Args:
+        image:       ``(H, W, 3)`` uint8 array in any channel order.
+        strength:    Sharpening strength in [0, 1] (default 0.5).
+        blur_sigma:  Gaussian blur sigma (default 1.0).
+        blur_kernel: Gaussian kernel size; must be odd (default 5).
+
+    Returns:
+        ``(H, W, 3)`` uint8 sharpened image.
+    """
+    blurred = cv2.GaussianBlur(image, (blur_kernel, blur_kernel), blur_sigma)
+    sharpened = cv2.addWeighted(image, 1.0 + strength, blurred, -strength, 0)
+    return np.clip(sharpened, 0, 255).astype(np.uint8)
