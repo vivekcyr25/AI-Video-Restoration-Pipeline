@@ -196,3 +196,77 @@ def compute_psnr(
     if mse == 0.0:
         return None
     return 10.0 * np.log10((max_pixel ** 2) / mse)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Crop and resize helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def resize_with_padding(
+    image: np.ndarray,
+    target_hw: tuple[int, int],
+    pad_value: int = 0,
+) -> np.ndarray:
+    """
+    Resize *image* to fit exactly within *target_hw* (height, width) while
+    preserving the aspect ratio, filling the remaining area with *pad_value*.
+
+    This is equivalent to ``video_utils.resize_fit`` but operates on in-memory
+    arrays and supports a configurable padding colour rather than only black.
+
+    Args:
+        image:      ``(H, W, C)`` or ``(H, W)`` uint8 array.
+        target_hw:  (target_height, target_width) tuple.
+        pad_value:  Scalar fill value for padded pixels (0 = black, 255 = white).
+
+    Returns:
+        ``(target_height, target_width[, C])`` uint8 array.
+    """
+    th, tw = target_hw
+    sh, sw = image.shape[:2]
+    scale = min(tw / sw, th / sh)
+    nw = max(1, int(round(sw * scale)))
+    nh = max(1, int(round(sh * scale)))
+    interp = cv2.INTER_AREA if scale < 1 else cv2.INTER_CUBIC
+    resized = cv2.resize(image, (nw, nh), interpolation=interp)
+
+    if image.ndim == 3:
+        canvas = np.full((th, tw, image.shape[2]), fill_value=pad_value, dtype=image.dtype)
+    else:
+        canvas = np.full((th, tw), fill_value=pad_value, dtype=image.dtype)
+
+    y0, x0 = (th - nh) // 2, (tw - nw) // 2
+    if image.ndim == 3:
+        canvas[y0:y0 + nh, x0:x0 + nw] = resized
+    else:
+        canvas[y0:y0 + nh, x0:x0 + nw] = resized
+    return canvas
+
+
+def crop_center(
+    image: np.ndarray,
+    crop_hw: tuple[int, int],
+) -> np.ndarray:
+    """
+    Extract a centre-aligned rectangular crop from *image*.
+
+    If *crop_hw* is larger than the image in either dimension, the image is
+    returned unchanged (no padding is added).
+
+    Args:
+        image:   ``(H, W[, C])`` array.
+        crop_hw: (crop_height, crop_width) tuple.
+
+    Returns:
+        ``(crop_height, crop_width[, C])`` array, or the original image if
+        the requested crop exceeds the image dimensions.
+    """
+    sh, sw = image.shape[:2]
+    ch, cw = crop_hw
+    if ch >= sh and cw >= sw:
+        return image
+    ch = min(ch, sh)
+    cw = min(cw, sw)
+    y0 = (sh - ch) // 2
+    x0 = (sw - cw) // 2
+    return image[y0:y0 + ch, x0:x0 + cw].copy()
