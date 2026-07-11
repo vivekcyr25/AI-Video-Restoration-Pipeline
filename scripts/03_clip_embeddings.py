@@ -24,6 +24,13 @@ Outputs (written to MODELS_DIR)
 Requirements
 ------------
     pip install open-clip-torch torch Pillow numpy tqdm
+
+Performance notes
+-----------------
+- Use ``--batch-size 64`` on a GPU with >=8 GB VRAM for best throughput.
+- On CUDA devices the model is automatically run in FP16 (half precision)
+  which halves VRAM usage with negligible quality loss.
+- CPU inference defaults to batch size 8 to avoid excessive memory pressure.
 """
 
 from __future__ import annotations
@@ -40,6 +47,8 @@ from tqdm import tqdm
 VALID_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 MODEL_NAME = "ViT-B-32"
 PRETRAINED = "laion2b_s34b_b79k"
+DEFAULT_BATCH_GPU = 64
+DEFAULT_BATCH_CPU = 8
 
 
 def parse_args() -> argparse.Namespace:
@@ -64,6 +73,14 @@ def parse_args() -> argparse.Namespace:
         default=Path(__file__).resolve().parent.parent / "models",
         help="Output directory for .npy embedding files.",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=0,
+        help=(
+            "Images per inference batch.  0 = auto (64 on GPU, 8 on CPU)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -82,36 +99,58 @@ def create_embeddings(
     model: open_clip.CLIP,
     preprocess,
     device: str,
+    batch_size: int = DEFAULT_BATCH_CPU,
 ) -> tuple[np.ndarray, list[str]]:
     """
     Encode a list of image paths into L2-normalised CLIP embeddings.
+
+    Images are processed in mini-batches to maximise GPU utilisation.
+    On CUDA devices the model is cast to FP16 before the first forward
+    pass to halve VRAM requirements.
 
     Returns
     -------
     embeddings : np.ndarray, shape (N, 512), float32
     names      : list[str], corresponding image filenames
     """
+    use_fp16 = device.startswith("cuda")
+    if use_fp16:
+        model = model.half()
+
     embeddings: list[np.ndarray] = []
     names: list[str] = []
 
-    for img_path in tqdm(images, unit="img"):
-        try:
-            image = Image.open(img_path).convert("RGB")
-            tensor = preprocess(image).unsqueeze(0).to(device)
+    for i in tqdm(range(0, len(images), batch_size), unit="batch"):
+        batch_paths = images[i : i + batch_size]
+        tensors = []
+        valid_names = []
+        for img_path in batch_paths:
+            try:
+                image = Image.open(img_path).convert("RGB")
+                t = preprocess(image)
+                tensors.append(t)
+                valid_names.append(img_path.name)
+            except Exception as exc:
+                print(f"  Skipped: {img_path.name} → {exc}")
 
-            with torch.no_grad():
-                emb = model.encode_image(tensor)
-                emb /= emb.norm(dim=-1, keepdim=True)  # L2 normalise
+        if not tensors:
+            continue
 
-            embeddings.append(emb.cpu().numpy()[0])
-            names.append(img_path.name)
-        except Exception as exc:
-            print(f"  Skipped: {img_path.name} → {exc}")
+        batch_tensor = torch.stack(tensors).to(device)
+        if use_fp16:
+            batch_tensor = batch_tensor.half()
+
+        with torch.no_grad():
+            emb = model.encode_image(batch_tensor)
+            emb = emb / emb.norm(dim=-1, keepdim=True)  # L2 normalise
+
+        embeddings.append(emb.float().cpu().numpy())
+        names.extend(valid_names)
 
     if not embeddings:
         return np.empty((0, 512), dtype=np.float32), []
 
-    return np.array(embeddings, dtype=np.float32), names
+    return np.concatenate(embeddings, axis=0).astype(np.float32), names
 
 
 def main() -> None:
@@ -119,7 +158,13 @@ def main() -> None:
     args.models.mkdir(parents=True, exist_ok=True)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.batch_size == 0:
+        batch_size = DEFAULT_BATCH_GPU if device.startswith("cuda") else DEFAULT_BATCH_CPU
+    else:
+        batch_size = args.batch_size
+
     print(f"Using device: {device}")
+    print(f"Batch size  : {batch_size}")
     print(f"Loading {MODEL_NAME} ({PRETRAINED})…")
 
     model, _, preprocess = open_clip.create_model_and_transforms(
@@ -132,7 +177,9 @@ def main() -> None:
     album_images = get_images(args.albums)
     print(f"\nAlbum images  : {len(album_images)}")
     print("Encoding album photos…")
-    album_emb, album_names = create_embeddings(album_images, model, preprocess, device)
+    album_emb, album_names = create_embeddings(
+        album_images, model, preprocess, device, batch_size=batch_size
+    )
     np.save(args.models / "album_embeddings.npy", album_emb)
     np.save(args.models / "album_names.npy", np.array(album_names))
     print(f"  Saved {len(album_names)} album embeddings → {args.models}/album_embeddings.npy")
@@ -141,7 +188,9 @@ def main() -> None:
     frame_images = get_images(args.frames)
     print(f"\nFrame images  : {len(frame_images)}")
     print("Encoding representative frames…")
-    frame_emb, frame_names = create_embeddings(frame_images, model, preprocess, device)
+    frame_emb, frame_names = create_embeddings(
+        frame_images, model, preprocess, device, batch_size=batch_size
+    )
     np.save(args.models / "frames_embeddings.npy", frame_emb)
     np.save(args.models / "frames_names.npy", np.array(frame_names))
     print(f"  Saved {len(frame_names)} frame embeddings → {args.models}/frames_embeddings.npy")
