@@ -157,6 +157,48 @@ def read_frame_at(cap: cv2.VideoCapture, frame_index: int) -> np.ndarray:
     return frame
 
 
+def extract_frame_range(
+    video_path: Path,
+    start_frame: int,
+    end_frame: int,
+    output_dir: Path,
+    quality: int = 2,
+    name_template: str = "frame_{:06d}.jpg",
+) -> list[Path]:
+    """
+    Extract a consecutive range of frames [start_frame, end_frame) to *output_dir*.
+
+    Each frame is saved as a JPEG named according to *name_template* (which
+    must contain exactly one ``{}`` positional placeholder for the frame index).
+
+    Args:
+        video_path:     Path to the source video.
+        start_frame:    First frame index to extract (inclusive, zero-based).
+        end_frame:      Last frame index (exclusive).
+        output_dir:     Directory where extracted frames are saved (created if
+                        it does not exist).
+        quality:        JPEG quality passed to FFmpeg ``-q:v`` (1=best, 31=worst).
+        name_template:  Filename format string, e.g. ``"frame_{:06d}.jpg"``.
+
+    Returns:
+        List of Paths that were successfully written.
+
+    Raises:
+        ValueError: If start_frame >= end_frame.
+    """
+    if start_frame >= end_frame:
+        raise ValueError(
+            f"start_frame ({start_frame}) must be less than end_frame ({end_frame})"
+        )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for idx in range(start_frame, end_frame):
+        out_path = output_dir / name_template.format(idx)
+        if extract_frame(video_path, idx, out_path, quality=quality):
+            written.append(out_path)
+    return written
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Video writer
 # ─────────────────────────────────────────────────────────────────────────────
