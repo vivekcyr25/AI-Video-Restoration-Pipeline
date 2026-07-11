@@ -90,9 +90,65 @@ git checkout -b feature/your-feature-name
    Types: `fix`, `feat`, `docs`, `refactor`, `perf`, `test`, `chore`
 
 4. **Update the README or docs/** if your change affects the pipeline or usage.
-5. **Open a Pull Request** against the `main` branch with a clear description
+5. **Add or update tests** in `tests/` for any new or changed utility functions.
+6. **Run the test suite** locally before pushing (see [Testing](#testing) below).
+7. **Open a Pull Request** against the `main` branch with a clear description
    of what was changed and why.
-6. **Respond to review feedback** promptly.
+8. **Respond to review feedback** promptly.
+
+---
+
+## Testing
+
+The project uses **pytest** for all utility tests.  The CI workflow
+(`.github/workflows/tests.yml`) runs these automatically on every push and
+pull request against `main`.
+
+### Running tests locally
+
+```bash
+# Install test dependencies (if not already installed)
+pip install pytest numpy opencv-python-headless
+
+# Run all tests
+pytest
+
+# Run a specific test file
+pytest tests/test_video_utils.py -v
+
+# Run a specific test class or function
+pytest tests/test_matcher_utils.py::TestBatchCosineSimilarity -v
+
+# Stop on first failure
+pytest -x
+```
+
+### Writing new tests
+
+- Place test files in `tests/` with the naming pattern `test_<module_name>.py`.
+- Use **synthetic NumPy arrays** and **`tmp_path` fixtures** — do not rely on
+  real video files or network access in unit tests.
+- For functions that call FFmpeg/OpenCV on real files, add a `@pytest.mark.skipif`
+  guard that checks for the binary:
+  ```python
+  import shutil, pytest
+  ffmpeg_available = pytest.mark.skipif(
+      shutil.which("ffmpeg") is None, reason="ffmpeg not available"
+  )
+  ```
+- Follow the `TestClassName` / `test_method_name` convention so pytest
+  discovery works without configuration changes.
+
+### What the CI checks
+
+The GitHub Actions workflow runs on Python 3.10, 3.11, and 3.12 in parallel.
+It installs `opencv-python-headless` (no display required) and runs:
+
+```bash
+pytest tests/ -v --tb=short
+```
+
+All tests must pass on all three versions before a PR can be merged.
 
 ---
 
