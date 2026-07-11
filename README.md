@@ -10,6 +10,19 @@
 [![OpenCLIP](https://img.shields.io/badge/OpenCLIP-ViT--B--32-purple)](https://github.com/mlfoundations/open_clip)
 [![InsightFace](https://img.shields.io/badge/InsightFace-buffalo__l-orange)](https://github.com/deepinsight/insightface)
 [![Live Preview](https://img.shields.io/badge/Live_Preview-GitHub_Pages-blue?style=flat-square)](https://vivekcyr25.github.io/AI-Video-Restoration-Pipeline/)
+[![Tests](https://github.com/vivekcyr25/AI-Video-Restoration-Pipeline/actions/workflows/tests.yml/badge.svg)](https://github.com/vivekcyr25/AI-Video-Restoration-Pipeline/actions/workflows/tests.yml)
+
+---
+
+> **v1.2.0 — What's New**
+>
+> - 🆕 `utils/image_utils.py` — Image I/O, CLAHE, unsharp mask, edge detection, PSNR
+> - 🆕 `utils/audio_utils.py` — FFmpeg audio extraction and EBU R128 loudness analysis
+> - 🆕 `scripts/00_preflight_check.py` — Environment validation before pipeline runs
+> - 🆕 `scripts/10_quality_report.py` — Per-frame PSNR / sharpness / histogram metrics
+> - 🆕 `tests/` — pytest suite with 60+ assertions across all utility modules
+> - ⚡ `03_clip_embeddings.py` — Mini-batch inference + FP16 on CUDA
+> - 📖 New docs: [troubleshooting](docs/troubleshooting.md) · [performance guide](docs/performance_guide.md)
 
 ---
 
