@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -55,6 +56,57 @@ def get_video_info(video_path: Path) -> dict:
         "frame_count":      frame_count,
         "duration_seconds": frame_count / fps,
     }
+
+
+def validate_video_file(video_path: Path) -> None:
+    """
+    Perform pre-flight validation checks on a video file.
+
+    Checks that the file exists, is non-empty, and can be opened by OpenCV.
+    Raises a descriptive exception on the first failure so callers get a clear
+    error message before attempting any processing.
+
+    Args:
+        video_path: Path to the video file to validate.
+
+    Raises:
+        FileNotFoundError: File does not exist.
+        ValueError:        File is empty (zero bytes).
+        RuntimeError:      OpenCV cannot open the file.
+    """
+    if not video_path.exists():
+        raise FileNotFoundError(f"Video file not found: {video_path}")
+    if video_path.stat().st_size == 0:
+        raise ValueError(f"Video file is empty (0 bytes): {video_path}")
+    cap = cv2.VideoCapture(str(video_path))
+    opened = cap.isOpened()
+    cap.release()
+    if not opened:
+        raise RuntimeError(
+            f"OpenCV cannot open video (unsupported codec or corrupted file): {video_path}"
+        )
+
+
+def get_video_aspect_ratio(video_path: Path) -> tuple[int, int]:
+    """
+    Return the display aspect ratio of a video as a reduced integer pair.
+
+    For example, a 1920×1080 video returns (16, 9) and a 640×480 video
+    returns (4, 3).
+
+    Args:
+        video_path: Path to the source video.
+
+    Returns:
+        Tuple (width_ratio, height_ratio) in lowest terms.
+
+    Raises:
+        RuntimeError: If the video cannot be opened or dimensions are invalid.
+    """
+    info = get_video_info(video_path)
+    w, h = info["width"], info["height"]
+    divisor = math.gcd(w, h)
+    return (w // divisor, h // divisor)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
