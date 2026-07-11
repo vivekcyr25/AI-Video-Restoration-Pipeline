@@ -7,6 +7,35 @@ Restoration pipeline.
 
 ---
 
+## Stage 0 — Pre-flight Environment Check
+
+**Script:** `scripts/00_preflight_check.py`  
+**Tool:** Python (stdlib only)  
+**Input:** N/A  
+**Output:** Console report + exit code (0 = pass, 1 = fail)
+
+### What it does
+
+Validates the complete runtime environment before any expensive computation begins.
+Run this first when setting up on a new machine or after changing Python environments.
+
+### Checks performed
+
+1. **System binaries** — `ffmpeg` and `ffprobe` must be on `PATH`.
+2. **Required Python packages** — `opencv-python`, `numpy`, `torch`, `open_clip`,
+   `insightface`, `pandas`, `Pillow`, `tqdm`.
+3. **Optional packages** — `pytest`, `line_profiler` (warnings only, not errors).
+4. **CUDA** — Detects GPU name and available VRAM if CUDA is present.
+5. **Input paths** — Validates the video file, albums directory, and frames directory.
+
+### Usage
+
+```bash
+python scripts/00_preflight_check.py --video path/to/video.mp4
+```
+
+---
+
 ## Stage 1 — Scene Detection
 
 **Script:** `scripts/01_extract_scenes.sh`  
@@ -374,3 +403,41 @@ ffmpeg \
 `-c:v copy` and `-c:a copy` ensure no re-encoding; both streams are stream-copied.
 `-shortest` truncates to the shorter stream, handling any length discrepancy.
 
+---
+
+## Stage 8 — Quality Report
+
+**Script:** `scripts/10_quality_report.py`  
+**Tool:** Python (NumPy, OpenCV)  
+**Input:** `Representative_Frames/` and `output/Restored_Frames/`  
+**Output:** `output/quality_report.csv` + console summary
+
+### What it does
+
+Quantitatively measures the quality improvement achieved by the restoration
+pipeline by comparing original representative frames against restored versions.
+
+### Metrics computed
+
+| Metric | Description |
+|---|---|
+| **PSNR (dB)** | Peak Signal-to-Noise Ratio — higher is better |
+| **Sharpness delta** | Laplacian variance(restored) − Laplacian variance(original); positive = sharper |
+| **Histogram similarity** | Bhattacharyya coefficient (0–1); values close to 1 indicate natural colour preservation |
+| **File size change** | Restored JPEG size − original JPEG size in bytes |
+
+### Interpretation guide
+
+- **PSNR > 30 dB**: Good restoration quality; pixel-level fidelity is high.
+- **PSNR 20–30 dB**: Moderate changes; visible but plausible enhancement.
+- **Sharpness delta > 0**: The restored frame is sharper than the original.
+- **Histogram similarity > 0.95**: Colour distribution is well-preserved.
+
+### Usage
+
+```bash
+python scripts/10_quality_report.py \
+  --original Representative_Frames \
+  --restored output/Restored_Frames \
+  --output output/quality_report.csv
+```
