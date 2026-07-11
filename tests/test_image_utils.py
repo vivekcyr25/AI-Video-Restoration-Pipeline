@@ -196,3 +196,110 @@ class TestComputePSNR:
         other = _solid_rgb(32, 32, 128, 128, 128)
         with pytest.raises(ValueError):
             compute_psnr(ref, other)
+
+
+# ---------------------------------------------------------------------------
+# resize_with_padding / crop_center
+# ---------------------------------------------------------------------------
+
+class TestResizeWithPadding:
+    def test_output_shape(self):
+        from utils.image_utils import resize_with_padding
+        img = _solid_rgb(100, 300, 200, 100, 50)
+        result = resize_with_padding(img, (100, 100))
+        assert result.shape == (100, 100, 3)
+
+    def test_custom_pad_value(self):
+        from utils.image_utils import resize_with_padding
+        img = _solid_rgb(10, 30, 255, 0, 0)  # wide red image
+        result = resize_with_padding(img, (30, 30), pad_value=128)
+        # Corners should be the pad value (128) since aspect ratio differs
+        assert result[0, 0, 0] == 128
+
+    def test_grayscale_input(self):
+        from utils.image_utils import resize_with_padding
+        gray = np.zeros((10, 30), dtype=np.uint8)
+        result = resize_with_padding(gray, (20, 20))
+        assert result.shape == (20, 20)
+
+
+class TestCropCenter:
+    def test_output_shape(self):
+        from utils.image_utils import crop_center
+        img = _solid_rgb(64, 64, 100, 100, 100)
+        result = crop_center(img, (32, 32))
+        assert result.shape == (32, 32, 3)
+
+    def test_larger_crop_returns_original(self):
+        from utils.image_utils import crop_center
+        img = _solid_rgb(16, 16, 50, 50, 50)
+        result = crop_center(img, (32, 32))
+        assert result.shape == img.shape
+
+
+# ---------------------------------------------------------------------------
+# canny_edges / gradient_magnitude / edge_agreement
+# ---------------------------------------------------------------------------
+
+class TestEdgeDetection:
+    def test_canny_uniform_image_has_no_edges(self):
+        from utils.image_utils import canny_edges
+        img = _solid_rgb(64, 64, 128, 128, 128)
+        edges = canny_edges(img)
+        assert edges.max() == 0
+
+    def test_canny_hard_boundary_has_edges(self):
+        from utils.image_utils import canny_edges
+        img = np.zeros((64, 64, 3), dtype=np.uint8)
+        img[:, 32:] = 255
+        edges = canny_edges(img)
+        assert edges.max() > 0
+
+    def test_gradient_magnitude_range(self):
+        from utils.image_utils import gradient_magnitude
+        img = _solid_rgb(32, 32, 100, 100, 100)
+        mag = gradient_magnitude(img)
+        assert mag.min() >= 0.0 and mag.max() <= 1.0
+
+    def test_edge_agreement_identical_images(self):
+        from utils.image_utils import edge_agreement
+        img = np.zeros((64, 64, 3), dtype=np.uint8)
+        img[:, 32:] = 255
+        score = edge_agreement(img, img)
+        assert score == 1.0
+
+    def test_edge_agreement_different_images(self):
+        from utils.image_utils import edge_agreement
+        img_a = np.zeros((64, 64, 3), dtype=np.uint8)
+        img_a[:, 32:] = 255
+        img_b = np.zeros((64, 64, 3), dtype=np.uint8)
+        img_b[32:, :] = 255
+        score = edge_agreement(img_a, img_b)
+        assert 0.0 <= score < 1.0
+
+
+# ---------------------------------------------------------------------------
+# clahe_enhance / unsharp_mask
+# ---------------------------------------------------------------------------
+
+class TestEnhancement:
+    def test_clahe_preserves_shape(self):
+        from utils.image_utils import clahe_enhance
+        img = _solid_rgb(64, 64, 100, 80, 60)
+        result = clahe_enhance(img)
+        assert result.shape == img.shape
+        assert result.dtype == np.uint8
+
+    def test_unsharp_mask_preserves_shape(self):
+        from utils.image_utils import unsharp_mask
+        img = _solid_rgb(64, 64, 150, 100, 50)
+        result = unsharp_mask(img)
+        assert result.shape == img.shape
+        assert result.dtype == np.uint8
+
+    def test_unsharp_mask_strength_zero_is_identity(self):
+        from utils.image_utils import unsharp_mask
+        img = _solid_rgb(32, 32, 128, 128, 128)
+        result = unsharp_mask(img, strength=0.0)
+        # With strength=0 the formula is: image * 1.0 + blurred * 0.0 = image
+        np.testing.assert_array_equal(result, img)
