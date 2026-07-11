@@ -237,6 +237,74 @@ def embedding_stats(embeddings: np.ndarray) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  Match filtering and persistence
+# ─────────────────────────────────────────────────────────────────────────────
+
+def filter_low_confidence(
+    match_rows: list[dict],
+    score_key: str = "Score",
+    threshold: float = 0.3,
+) -> list[dict]:
+    """
+    Remove match results whose score falls below *threshold*.
+
+    This acts as a quality gate before the restoration stage: frames that have
+    no album photo with a combined score above the threshold are excluded from
+    expensive GPU-based restoration.
+
+    Args:
+        match_rows:  List of dicts as produced by the advanced matcher, where
+                     each dict represents one (frame, album, rank) triple.
+        score_key:   Dict key holding the numeric score value.
+        threshold:   Minimum score to retain (inclusive).
+
+    Returns:
+        Filtered list containing only rows where ``row[score_key] >= threshold``.
+    """
+    filtered = []
+    for row in match_rows:
+        try:
+            score = float(row.get(score_key, 0.0))
+        except (TypeError, ValueError):
+            score = 0.0
+        if score >= threshold:
+            filtered.append(row)
+    return filtered
+
+
+def save_match_results(
+    match_rows: list[dict],
+    output_path: Path,
+    fieldnames: list[str] | None = None,
+) -> None:
+    """
+    Write *match_rows* to a CSV file at *output_path*.
+
+    Args:
+        match_rows:  List of dicts, one per match triple.
+        output_path: Destination ``.csv`` file (parent directory created if
+                     needed).
+        fieldnames:  Column names for the CSV header.  If ``None``, the keys
+                     of the first dict are used.
+
+    Raises:
+        ValueError: If *match_rows* is empty and *fieldnames* is None.
+    """
+    import csv
+
+    if not match_rows and fieldnames is None:
+        raise ValueError(
+            "Cannot write an empty match list without explicit fieldnames."
+        )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cols = fieldnames or list(match_rows[0].keys())
+    with output_path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(match_rows)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Face map helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
