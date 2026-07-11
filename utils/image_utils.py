@@ -270,3 +270,91 @@ def crop_center(
     y0 = (sh - ch) // 2
     x0 = (sw - cw) // 2
     return image[y0:y0 + ch, x0:x0 + cw].copy()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Edge detection helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def canny_edges(
+    image: np.ndarray,
+    low_threshold: int = 50,
+    high_threshold: int = 150,
+) -> np.ndarray:
+    """
+    Compute Canny edge map for *image*.
+
+    Args:
+        image:          ``(H, W)`` or ``(H, W, C)`` uint8 array.
+        low_threshold:  Lower hysteresis threshold.
+        high_threshold: Upper hysteresis threshold.
+
+    Returns:
+        ``(H, W)`` uint8 binary edge map (255 = edge, 0 = non-edge).
+    """
+    if image.ndim == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = image
+    return cv2.Canny(gray, low_threshold, high_threshold)
+
+
+def gradient_magnitude(image: np.ndarray) -> np.ndarray:
+    """
+    Compute the gradient magnitude of *image* using Sobel operators.
+
+    Useful for building confidence masks in the restoration pipeline
+    (high gradient → reliable structure; low gradient → flat/smooth area).
+
+    Args:
+        image: ``(H, W)`` or ``(H, W, C)`` uint8 array.
+
+    Returns:
+        ``(H, W)`` float32 array with gradient magnitudes, normalised to [0, 1].
+    """
+    if image.ndim == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    else:
+        gray = image.astype(np.float32)
+
+    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+    mag = np.sqrt(gx ** 2 + gy ** 2)
+
+    max_val = mag.max()
+    if max_val > 0:
+        mag /= max_val
+    return mag
+
+
+def edge_agreement(
+    image_a: np.ndarray,
+    image_b: np.ndarray,
+    low_threshold: int = 50,
+    high_threshold: int = 150,
+) -> float:
+    """
+    Measure the spatial agreement between the Canny edges of two images.
+
+    Agreement is computed as the Intersection-over-Union (IoU) of the two
+    binary edge maps.  A value close to 1.0 means the images share the same
+    structural layout; a value near 0.0 indicates misalignment.
+
+    Args:
+        image_a:        First image ``(H, W[, C])`` uint8.
+        image_b:        Second image ``(H, W[, C])`` uint8 (must match shape).
+        low_threshold:  Canny lower threshold.
+        high_threshold: Canny upper threshold.
+
+    Returns:
+        IoU score in [0, 1].
+    """
+    edges_a = canny_edges(image_a, low_threshold, high_threshold) > 0
+    edges_b = canny_edges(image_b, low_threshold, high_threshold) > 0
+
+    intersection = np.logical_and(edges_a, edges_b).sum()
+    union = np.logical_or(edges_a, edges_b).sum()
+
+    if union == 0:
+        return 1.0  # Both images have no edges → trivially identical
+    return float(intersection) / float(union)
