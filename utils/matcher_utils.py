@@ -157,6 +157,85 @@ def top_k_indices(scores: np.ndarray, k: int) -> np.ndarray:
     return idx[np.argsort(-scores[idx])]
 
 
+def batch_cosine_similarity(
+    query: np.ndarray,
+    gallery: np.ndarray,
+    chunk_size: int = 512,
+) -> np.ndarray:
+    """
+    Compute a cosine similarity matrix in chunks to reduce peak memory usage.
+
+    Equivalent to :func:`cosine_similarity_matrix` but processes the *gallery*
+    in blocks of *chunk_size* columns.  Useful when both arrays are large and
+    a full materialisation would exceed available RAM.
+
+    Both *query* and *gallery* must already be L2-normalised.
+
+    Args:
+        query:      Shape ``(N_q, D)`` float32 array.
+        gallery:    Shape ``(N_g, D)`` float32 array.
+        chunk_size: Number of gallery rows to process per iteration.
+
+    Returns:
+        Shape ``(N_q, N_g)`` float32 cosine similarity matrix.
+    """
+    if (
+        query.ndim != 2 or gallery.ndim != 2
+        or query.shape[0] == 0 or gallery.shape[0] == 0
+        or query.shape[1] == 0 or query.shape[1] != gallery.shape[1]
+    ):
+        return np.empty((0, 0), dtype=np.float32)
+
+    n_q, n_g = query.shape[0], gallery.shape[0]
+    result = np.empty((n_q, n_g), dtype=np.float32)
+
+    for start in range(0, n_g, chunk_size):
+        end = min(start + chunk_size, n_g)
+        result[:, start:end] = (query @ gallery[start:end].T).astype(np.float32)
+
+    return result
+
+
+def embedding_stats(embeddings: np.ndarray) -> dict:
+    """
+    Compute summary statistics for a 2-D embedding matrix.
+
+    Useful for debugging pipeline stages: checks for zero vectors, NaN/Inf
+    values, and reports norm distribution.
+
+    Args:
+        embeddings: Shape ``(N, D)`` float32 array.
+
+    Returns:
+        dict with keys:
+            n_rows       — number of embedding vectors
+            dim          — embedding dimensionality
+            n_zero       — number of all-zero vectors
+            n_nan_inf    — number of rows containing NaN or Inf
+            mean_norm    — mean L2 norm across all rows
+            std_norm     — standard deviation of L2 norms
+    """
+    if embeddings.size == 0 or embeddings.ndim != 2:
+        return {
+            "n_rows": 0,
+            "dim": embeddings.shape[1] if embeddings.ndim == 2 else 0,
+            "n_zero": 0,
+            "n_nan_inf": 0,
+            "mean_norm": 0.0,
+            "std_norm": 0.0,
+        }
+
+    norms = np.linalg.norm(embeddings, axis=1)
+    return {
+        "n_rows": int(embeddings.shape[0]),
+        "dim": int(embeddings.shape[1]),
+        "n_zero": int(np.sum(norms < 1e-12)),
+        "n_nan_inf": int(np.sum(~np.isfinite(embeddings).all(axis=1))),
+        "mean_norm": float(norms.mean()),
+        "std_norm": float(norms.std()),
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Face map helpers
 # ─────────────────────────────────────────────────────────────────────────────
