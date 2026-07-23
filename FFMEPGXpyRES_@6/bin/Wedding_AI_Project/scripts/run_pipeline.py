@@ -1,9 +1,9 @@
 """
 scripts/run_pipeline.py
 =======================
-Unified pipeline manager. Coordinates the execution of all 8 restoration stages
+Unified pipeline manager. Coordinates the execution of all restoration stages
 using parameters defined in a central configuration file.
-Supports checkpointing, resume, and selective stage execution.
+Supports checkpointing, resume, selective stage execution, and direct CLI path overrides.
 """
 
 from __future__ import annotations
@@ -12,17 +12,22 @@ import argparse
 import logging
 import subprocess
 import time
+import sys
 from pathlib import Path
 import yaml
+
+# Insert project root to path for absolute imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline import (
     VideoRepairStage,
     FrameExtractorStage,
     CLIPEmbedderStage,
     FaceEmbedderStage,
-    HybridMatcherStage,
+    ReferenceSelectorStage,
     ReferenceRestorer,
     VideoPropagationStage,
+    QualityValidator,
 )
 
 logging.basicConfig(
@@ -72,8 +77,8 @@ def run_all(config: dict, force: bool = False) -> None:
     stage4 = FaceEmbedderStage(config)
     stage4.run(force=force)
     
-    # Stage 5: Hybrid Matching
-    stage5 = HybridMatcherStage(config)
+    # Stage 5: Reference Selection
+    stage5 = ReferenceSelectorStage(config)
     stage5.run(force=force)
     
     # Stage 6: Reference-guided Restoration
@@ -92,6 +97,11 @@ def run_all(config: dict, force: bool = False) -> None:
     if not success:
         raise RuntimeError("Audio muxing failed.")
         
+    # Stage 9: Quality Validation Report
+    logger.info("Executing final Quality Validation stage...")
+    validator = QualityValidator(config)
+    validator.run()
+        
     duration = time.time() - start_time
     logger.info(f"Complete Restoration Pipeline executed successfully in {duration:.1f}s.")
 
@@ -108,8 +118,26 @@ def main() -> None:
         "--stage",
         type=str,
         default="all",
-        choices=["1", "2", "3", "4", "5", "6", "7", "8", "all"],
+        choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "all"],
         help="Specific stage to execute or 'all' to run sequentially."
+    )
+    p.add_argument(
+        "--video",
+        type=str,
+        default=None,
+        help="Override path to input video file."
+    )
+    p.add_argument(
+        "--album",
+        type=str,
+        default=None,
+        help="Override path to album reference photos directory."
+    )
+    p.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Override path for the final restored video file."
     )
     p.add_argument(
         "--force",
@@ -132,11 +160,19 @@ def main() -> None:
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
+    # CLI path overrides
+    if args.video:
+        config["global"]["video_path"] = args.video
+    if args.album:
+        config["global"]["albums_dir"] = args.album
+    if args.output:
+        config["video_propagation"]["output_final"] = args.output
+        
     if args.device is not None:
         config["global"]["device"] = args.device
 
     stage = args.stage
-    logger.info(f"Running pipeline with stage: {stage} (force={args.force})")
+    logger.info(f"Running pipeline stage: {stage} (force={args.force})")
     
     try:
         if stage == "all":
@@ -150,7 +186,7 @@ def main() -> None:
         elif stage == "4":
             FaceEmbedderStage(config).run(force=args.force)
         elif stage == "5":
-            HybridMatcherStage(config).run(force=args.force)
+            ReferenceSelectorStage(config).run(force=args.force)
         elif stage == "6":
             ReferenceRestorer(config).run(force=args.force)
         elif stage == "7":
@@ -160,6 +196,9 @@ def main() -> None:
             silent = Path(config["video_propagation"]["output_silent"])
             final = Path(config["video_propagation"]["output_final"])
             mux_audio(original, silent, final)
+        elif stage == "9":
+            validator = QualityValidator(config)
+            validator.run()
     except Exception as e:
         logger.exception(f"Pipeline execution failed on Stage {stage}: {e}")
 
