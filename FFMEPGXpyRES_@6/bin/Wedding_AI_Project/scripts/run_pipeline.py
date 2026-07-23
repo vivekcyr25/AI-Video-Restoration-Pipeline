@@ -19,16 +19,7 @@ import yaml
 # Insert project root to path for absolute imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from pipeline import (
-    VideoRepairStage,
-    FrameExtractorStage,
-    CLIPEmbedderStage,
-    FaceEmbedderStage,
-    ReferenceSelectorStage,
-    ReferenceRestorer,
-    VideoPropagationStage,
-    QualityValidator,
-)
+# Logging config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +50,16 @@ def mux_audio(original_video: Path, silent_video: Path, final_video: Path) -> bo
 
 
 def run_all(config: dict, force: bool = False) -> None:
+    from pipeline import (
+        VideoRepairStage,
+        FrameExtractorStage,
+        CLIPEmbedderStage,
+        FaceEmbedderStage,
+        ReferenceSelectorStage,
+        ReferenceRestorer,
+        VideoPropagationStage,
+        QualityValidator,
+    )
     start_time = time.time()
     
     # Stage 1: Video Repair
@@ -178,18 +179,25 @@ def main() -> None:
         if stage == "all":
             run_all(config, force=args.force)
         elif stage == "1":
+            from pipeline import VideoRepairStage
             VideoRepairStage(config).run(force=args.force)
         elif stage == "2":
+            from pipeline import FrameExtractorStage
             FrameExtractorStage(config).run(force=args.force)
         elif stage == "3":
+            from pipeline import CLIPEmbedderStage
             CLIPEmbedderStage(config).run(force=args.force)
         elif stage == "4":
+            from pipeline import FaceEmbedderStage
             FaceEmbedderStage(config).run(force=args.force)
         elif stage == "5":
+            from pipeline import ReferenceSelectorStage
             ReferenceSelectorStage(config).run(force=args.force)
         elif stage == "6":
+            from pipeline import ReferenceRestorer
             ReferenceRestorer(config).run(force=args.force)
         elif stage == "7":
+            from pipeline import VideoPropagationStage
             VideoPropagationStage(config).run(force=args.force)
         elif stage == "8":
             original = Path(config["global"]["video_path"])
@@ -197,6 +205,7 @@ def main() -> None:
             final = Path(config["video_propagation"]["output_final"])
             mux_audio(original, silent, final)
         elif stage == "9":
+            from pipeline import QualityValidator
             validator = QualityValidator(config)
             validator.run()
     except Exception as e:

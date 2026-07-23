@@ -21,12 +21,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
-import torch
 from skimage.metrics import peak_signal_noise_ratio as psnr_fn
 from skimage.metrics import structural_similarity as ssim_fn
-
-from pipeline.reference_selector import VGGPerceptualLoss
-from pipeline.face_embedder import FaceAnalysis
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("quality_validator")
@@ -34,6 +30,7 @@ logger = logging.getLogger("quality_validator")
 
 class QualityValidator:
     def __init__(self, config: dict):
+        import torch
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() and config["global"]["device"] == "cuda" else "cpu"
         self.cfr_path = Path(config["video_repair"]["cfr_video_path"])
@@ -56,6 +53,29 @@ class QualityValidator:
         return float(np.mean(diffs))
 
     def run(self) -> dict:
+        import torch
+        import torchvision.models as models
+        import json
+        from insightface.app import FaceAnalysis
+
+        class VGGPerceptualLoss(torch.nn.Module):
+            """VGG16-based Perceptual Similarity metric (LPIPS equivalent)."""
+            def __init__(self):
+                super().__init__()
+                vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
+                self.slice1 = torch.nn.Sequential(*list(vgg.children())[:4])   # conv1_2
+                self.slice2 = torch.nn.Sequential(*list(vgg.children())[4:9])   # conv2_2
+                self.slice3 = torch.nn.Sequential(*list(vgg.children())[9:16])  # conv3_3
+                for param in self.parameters():
+                    param.requires_grad = False
+
+            def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
+                h1 = self.slice1(x)
+                h2 = self.slice2(h1)
+                h3 = self.slice3(h2)
+                # L2 normalize feature maps channel-wise
+                return [h / (h.norm(dim=1, keepdim=True) + 1e-10) for h in [h1, h2, h3]]
+
         logger.info("Starting Quality Validation Report...")
         start_time = time.time()
         

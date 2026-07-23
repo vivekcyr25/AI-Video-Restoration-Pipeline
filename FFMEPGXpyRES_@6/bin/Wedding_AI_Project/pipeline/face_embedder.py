@@ -17,7 +17,6 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from insightface.app import FaceAnalysis
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("face_embedder")
@@ -66,7 +65,8 @@ class FaceEmbedderStage:
             key=lambda x: x.name.lower()
         )
 
-    def _initialize_detector(self) -> FaceAnalysis:
+    def _initialize_detector(self):
+        from insightface.app import FaceAnalysis
         logger.info("Initializing InsightFace detector...")
         providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.device == "cuda" else ["CPUExecutionProvider"]
         # Prepare app with correct execution providers

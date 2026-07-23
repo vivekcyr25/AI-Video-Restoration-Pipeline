@@ -18,15 +18,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
-import torch
-
 from utils.image_enhancement import (
     apply_clahe,
     color_transfer,
     edge_enhancement,
     guided_filter,
 )
-from pipeline.realesrgan_engine import RealESRGANEngine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("main_restoration")
@@ -34,6 +31,7 @@ logger = logging.getLogger("main_restoration")
 
 class ReferenceRestorer:
     def __init__(self, config: dict):
+        import torch
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() and config["global"]["device"] == "cuda" else "cpu"
         self.albums_dir = Path(config["global"]["albums_dir"])
@@ -63,9 +61,10 @@ class ReferenceRestorer:
                 logger.warning(f"Could not load face cache: {e}")
         return {}
 
-    def _init_realesrgan(self) -> RealESRGANEngine | None:
+    def _init_realesrgan(self):
         if not self.use_realesrgan:
             return None
+        from pipeline.realesrgan_engine import RealESRGANEngine
         try:
             engine = RealESRGANEngine(
                 model_name=self.realesrgan_model,
@@ -297,6 +296,7 @@ class ReferenceRestorer:
         if self.esrgan_engine is not None:
             del self.esrgan_engine
         if self.device == "cuda":
+            import torch
             torch.cuda.empty_cache()
 
 

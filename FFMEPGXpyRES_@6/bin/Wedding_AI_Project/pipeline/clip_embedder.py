@@ -13,11 +13,8 @@ import logging
 import os
 from pathlib import Path
 
-import numpy as np
-import open_clip
-import torch
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+import numpy as np
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("clip_embedder")
@@ -25,29 +22,9 @@ logger = logging.getLogger("clip_embedder")
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
-class ImageDataset(Dataset):
-    """PyTorch Dataset for async image loading and preprocessing."""
-    def __init__(self, paths: list[Path], preprocess_fn):
-        self.paths = paths
-        self.preprocess_fn = preprocess_fn
-
-    def __len__(self) -> int:
-        return len(self.paths)
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, str, int]:
-        path = self.paths[idx]
-        try:
-            img = Image.open(path).convert("RGB")
-            tensor = self.preprocess_fn(img)
-            return tensor, path.name, 1
-        except Exception as e:
-            logger.warning(f"Error loading image {path}: {e}")
-            # Return dummy tensor on failure
-            return torch.zeros(3, 224, 224), path.name, 0
-
-
 class CLIPEmbedderStage:
     def __init__(self, config: dict):
+        import torch
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() and config["global"]["device"] == "cuda" else "cpu"
         self.albums_dir = Path(config["global"]["albums_dir"])
@@ -82,6 +59,31 @@ class CLIPEmbedderStage:
         return None, []
 
     def _process_directory(self, folder: Path, out_prefix: str, force: bool = False) -> None:
+        import torch
+        from torch.utils.data import DataLoader, Dataset
+        import open_clip
+        import numpy as np
+
+        class ImageDataset(Dataset):
+            """PyTorch Dataset for async image loading and preprocessing."""
+            def __init__(self, paths: list[Path], preprocess_fn):
+                self.paths = paths
+                self.preprocess_fn = preprocess_fn
+
+            def __len__(self) -> int:
+                return len(self.paths)
+
+            def __getitem__(self, idx: int) -> tuple[torch.Tensor, str, int]:
+                path = self.paths[idx]
+                try:
+                    img = Image.open(path).convert("RGB")
+                    tensor = self.preprocess_fn(img)
+                    return tensor, path.name, 1
+                except Exception as e:
+                    logger.warning(f"Error loading image {path}: {e}")
+                    # Return dummy tensor on failure
+                    return torch.zeros(3, 224, 224), path.name, 0
+
         emb_path = self.models_dir / f"{out_prefix}_embeddings.npy"
         names_path = self.models_dir / f"{out_prefix}_names.npy"
         
