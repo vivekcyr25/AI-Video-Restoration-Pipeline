@@ -1,500 +1,147 @@
-# 🎬 AI Video Restoration Pipeline
+# 🎬 State-of-the-Art reference-Guided AI Video Restoration Pipeline
 
-> A scene-aware, AI-driven pipeline that restores a degraded legacy wedding
-> video using CLIP visual embeddings, InsightFace identity matching, optical
-> flow propagation, and FFmpeg video reconstruction.
+> A research-grade, scene-aware, and identity-preserving AI pipeline designed to restore compressed, degraded legacy video footage using high-quality still photographs as reference anchors. 
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
-[![FFmpeg](https://img.shields.io/badge/FFmpeg-8.x-green?logo=ffmpeg)](https://ffmpeg.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![OpenCLIP](https://img.shields.io/badge/OpenCLIP-ViT--B--32-purple)](https://github.com/mlfoundations/open_clip)
+[![FFmpeg](https://img.shields.io/badge/FFmpeg-6.x%2F8.x-green?logo=ffmpeg)](https://ffmpeg.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red?logo=pytorch)](https://pytorch.org/)
 [![InsightFace](https://img.shields.io/badge/InsightFace-buffalo__l-orange)](https://github.com/deepinsight/insightface)
-[![Live Preview](https://img.shields.io/badge/Live_Preview-GitHub_Pages-blue?style=flat-square)](https://vivekcyr25.github.io/AI-Video-Restoration-Pipeline/)
-[![Tests](https://github.com/vivekcyr25/AI-Video-Restoration-Pipeline/actions/workflows/tests.yml/badge.svg)](https://github.com/vivekcyr25/AI-Video-Restoration-Pipeline/actions/workflows/tests.yml)
+[![OpenCLIP](https://img.shields.io/badge/OpenCLIP-ViT--B--32-purple)](https://github.com/mlfoundations/open_clip)
 
 ---
 
-> **v1.2.0 — What's New**
->
-> - 🆕 `utils/image_utils.py` — Image I/O, CLAHE, unsharp mask, edge detection, PSNR
-> - 🆕 `utils/audio_utils.py` — FFmpeg audio extraction and EBU R128 loudness analysis
-> - 🆕 `scripts/00_preflight_check.py` — Environment validation before pipeline runs
-> - 🆕 `scripts/10_quality_report.py` — Per-frame PSNR / sharpness / histogram metrics
-> - 🆕 `tests/` — pytest suite with 60+ assertions across all utility modules
-> - ⚡ `03_clip_embeddings.py` — Mini-batch inference + FP16 on CUDA
-> - 📖 New docs: [troubleshooting](docs/troubleshooting.md) · [performance guide](docs/performance_guide.md)
+## 🏗️ Redesigned Pipeline Architecture
 
----
-
-## 📖 Project Overview
-
-This repository contains the complete research engineering toolkit used to
-restore a compressed, degraded wedding video recorded on legacy hardware.
-The video suffered from compression artefacts, loss of fine detail, and
-reduced colour fidelity. The project applies a multi-stage AI pipeline to
-recover perceptual quality without access to the original raw footage.
-
-The pipeline matches video scenes to a curated album of high-quality
-reference photographs using semantic and identity embeddings, then
-propagates the enhancement from representative keyframes across every
-frame in each scene using dense optical flow.
-
-> **Note:** This is a polished portfolio archive of a real completed
-> experiment. The pipeline is fully functional but not structured as an
-> installable package.
-
----
-
-## 💡 Motivation
-
-Old videos are irreplaceable. When the original recording is compressed
-with aggressive codecs — losing sharpness, colour depth, and fine detail —
-re-shooting is not an option. This project answers the question:
-
-> *Can AI recover visual quality in a degraded video by leveraging
-> high-quality still photos taken at the same event?*
-
-The key insight: Studio photographers capture the same moments at full
-quality. If we can match video frames to album photos with high accuracy
-(especially for the same people and scenes), we can use those photos as
-enhancement references for the corresponding video frames.
-
----
-
-## ✨ Features
-
-| Feature | Description |
-|---|---|
-| 🎯 **Scene-aware processing** | PySceneDetect divides the video into shots; only one representative frame per scene is AI-processed |
-| 🤖 **Dual embedding matching** | Combines CLIP semantic similarity (30%) and InsightFace face identity (70%) for accurate frame–album pairing |
-| 👤 **Face-guided alignment** | InsightFace detects and aligns faces using an affine transform for sub-pixel face-region accuracy |
-| 🌊 **Optical flow propagation** | Farnebäck dense flow propagates restoration deltas to all frames in a scene, ensuring temporal coherence |
-| 🎛️ **Confidence-weighted blending** | Per-pixel confidence masks prevent over-restoration in regions where the reference photo doesn't match |
-| 🎵 **Lossless audio preservation** | FFmpeg stream-copies the original AAC audio track — no re-encoding |
-| 📊 **Full processing logs** | Every restoration decision is logged to CSV with status codes and similarity scores |
-| 🔄 **Dual restoration modes** | SIFT homography (v1) and face-affine detail transfer (v2) with automatic fallback cascade |
-
----
-
-## 🛠️ Technology Stack
-
-| Component | Tool / Model | Version |
-|---|---|---|
-| Video processing | **FFmpeg** | 8.x |
-| Scene detection | **PySceneDetect** | 0.6+ |
-| Visual embeddings | **OpenCLIP ViT-B-32** | LAION-2B weights |
-| Face detection | **InsightFace RetinaFace** | buffalo_l |
-| Face embeddings | **InsightFace ArcFace** | ResNet-50, buffalo_l |
-| Feature matching | **SIFT / ORB** | OpenCV 4.8+ |
-| Optical flow | **Farnebäck** | OpenCV dense flow |
-| Image enhancement | **CLAHE, bilateral filter, unsharp mask** | OpenCV |
-| Data processing | **NumPy, Pandas** | Latest |
-| Progress display | **tqdm** | Latest |
-| Deep learning | **PyTorch** | 2.0+ |
-
----
-
-## 🏗️ Pipeline Workflow
-
-The pipeline consists of 7 stages executed sequentially:
+This pipeline is structured into 8 sequential stages, coordinated through a central configuration system and optimized to execute on consumer-grade GPUs (such as the **RTX 3050 4GB VRAM**) without Out-Of-Memory (OOM) failures.
 
 ```
-Input Video
+Input Video & Album
     │
-    ├─ Stage 1 ── PySceneDetect
-    │               Scene boundary detection
-    │               Output: scenes.csv
+    ├─ Stage 1 ── Video Repair & CFR Conversion (FFmpeg & PySceneDetect)
+    │               Output: repaired_video.mp4, cfr_video.mp4, scenes.csv
     │
-    ├─ Stage 2 ── FFmpeg frame extractor
-    │               One representative JPEG per scene (midpoint frame)
-    │               Output: Representative_Frames/
+    ├─ Stage 2 ── Representative Frame Extraction (FFmpeg seeking)
+    │               Output: Representative_Frames/scene_XXXX.jpg
     │
-    ├─ Stage 3A ─ OpenCLIP ViT-B-32
-    │               512-dim semantic embeddings for frames + album photos
-    │               Output: models/*.npy
+    ├─ Stage 3 ── Batch CLIP Embeddings (OpenCLIP ViT-B-32 FP16)
+    │               Output: models/album_embeddings.npy, models/frames_embeddings.npy
     │
-    ├─ Stage 3B ─ InsightFace buffalo_l
-    │               512-dim face identity embeddings
-    │               Output: models/*_face_*.npy + *.csv
+    ├─ Stage 4 ── InsightFace & Face Cache (ORT CUDA ArcFace & face_cache.json)
+    │               Output: models/face_cache.json, models/*_face_embeddings.npy
     │
-    ├─ Stage 4 ── Hybrid Matcher
-    │               CLIP × 0.30 + Face × 0.70 → ranked album matches
+    ├─ Stage 5 ── Hybrid Coarse-to-Fine Matcher (Face + CLIP + Scene + Color + VGG-LPIPS)
     │               Output: output/advanced_matches.csv
     │
-    ├─ Stage 5 ── Frame Restoration (v1 or v2)
-    │               Geometric alignment + detail transfer + CLAHE
-    │               Output: output/Restored_Frames/
+    ├─ Stage 6 ── Reference-Guided Face Restoration & Real-ESRGAN BG
+    │               Output: output/Restored_Frames/scene_XXXX.jpg, output/restore_log.csv
     │
-    ├─ Stage 6 ── Video Reconstruction
-    │               Optical flow propagation of enhancement delta
-    │               Output: output/Restored_silent.mp4
+    ├─ Stage 7 ── Video Detail Propagation (torchvision RAFT-small FP16)
+    │               Output: output/Restored_Wedding_silent.mp4
     │
-    └─ Stage 7 ── FFmpeg audio mux
-                    Stream-copy original AAC audio
-                    Output: output/Restored_final.mp4
+    └─ Stage 8 ── Lossless Audio Muxing (FFmpeg Stream-Copy)
+                    Output: output/Restored_Wedding_final.mp4
 ```
-
-For a detailed technical explanation of each stage including algorithms,
-parameters, and data flow, see [docs/pipeline_stages.md](docs/pipeline_stages.md).
-
-For the Mermaid architecture diagram, see [docs/architecture.md](docs/architecture.md).
-
-For the interactive algorithm preview site, see [docs/preview.md](docs/preview.md) or visit the [live demo](https://vivekcyr25.github.io/AI-Video-Restoration-Pipeline/).
 
 ---
 
-## 📁 Directory Structure
+## 💡 Key Design Decisions & Optimizations
+
+* **Identity Preservation (No Face Hallucination)**: Standard face restoration models (like GFPGAN or CodeFormer) often hallucinate facial details, altering the subject's identity. This pipeline warps the *actual* album photo face using a **5-point affine alignment** (based on InsightFace landmarks), extracts real high-frequency facial textures (pores, hair, eye reflections), and blends them into target frames using soft segment masks (eyes, lips, skin, hair, jewellery).
+* **Modern Optical Flow Propagation**: Replaced the classical Farnebäck flow with **RAFT-small** (Recurrent All-Pairs Field Transforms). RAFT maps sub-pixel motion details and occlusion masks, allowing the restored keyframe deltas to propagate smoothly across video shots without temporal blurring.
+* **Low-VRAM Sequential Lifecycles**: Each stage loads its required deep neural networks on-demand, executes in `FP16` half-precision under `torch.inference_mode()`, and completely deletes models followed by `torch.cuda.empty_cache()` before the next stage initializes.
+* **Incremental Face Cache**: Bounding boxes, landmarks, and ArcFace embeddings are cached in a central `models/face_cache.json` file. If a run is interrupted, the pipeline skips face detection for cached files, saving massive amounts of compute time.
+
+---
+
+## 📁 Repository Layout
 
 ```
-ai-video-restoration/
-│
-├── scripts/                         # Numbered pipeline scripts (run in order)
-│   ├── 01_extract_scenes.sh         # Stage 1: PySceneDetect scene boundary detection
-│   ├── 02_extract_frames.sh         # Stage 2: FFmpeg representative frame extraction
-│   ├── 03_clip_embeddings.py        # Stage 3A: OpenCLIP visual embedding generation
-│   ├── 04_face_embeddings.py        # Stage 3B: InsightFace face embedding generation
-│   ├── 05_advanced_matcher.py       # Stage 4: Hybrid CLIP + face frame matching
-│   ├── 06_restore_frame.py          # Stage 5A: SIFT homography restoration (v1)
-│   ├── 07_restore_frame_v2.py       # Stage 5B: Face-affine detail transfer (v2)
-│   ├── 08_rebuild_video.py          # Stage 6: Optical flow video reconstruction
-│   └── 09_merge_audio.sh            # Stage 7: FFmpeg audio mux
-│
-├── utils/                           # Shared helper modules
+├── configs/
+│   └── pipeline_config.yaml         # Centralized stage parameters & paths
+├── pipeline/
 │   ├── __init__.py
-│   ├── matcher_utils.py             # Embedding loading, normalization, similarity
-│   └── video_utils.py               # FFmpeg wrappers, frame I/O, resize helpers
-│
-├── docs/                            # Project documentation
-│   ├── architecture.md              # Full pipeline Mermaid diagram + data flow
-│   ├── pipeline_stages.md           # Detailed per-stage technical documentation
-│   ├── sample_commands.md           # Copy-paste CLI reference for all stages
-│   └── preview.md                   # Interactive preview site guide
-│
-├── preview/                         # React preview site (GitHub Pages)
-├── data/
-│   └── sample/
-│       └── example-Scenes.csv       # Sample PySceneDetect output (reference format)
-│
-├── models/                          # Pre-computed embeddings (git-ignored)
-│   └── .gitkeep
-│
-├── output/                          # Generated outputs (git-ignored)
-│   └── .gitkeep
-│
-├── .gitignore                       # Excludes videos, models, outputs, caches
-├── LICENSE                          # MIT License
-├── README.md                        # This file
-├── CONTRIBUTING.md                  # Contribution guidelines
+│   ├── video_repair.py              # Container repair, CFR transcode, PySceneDetect
+│   ├── frame_extractor.py           # representative frame extract
+│   ├── clip_embedder.py             # Batch CLIP embedder (DataLoaders + Pinned memory)
+│   ├── face_embedder.py             # InsightFace CUDA generator & persistent cache
+│   ├── hybrid_matcher.py            # Coarse-to-fine multi-similarity matcher
+│   ├── main_restoration.py          # Reference-guided face blend + Real-ESRGAN BG
+│   └── video_propagation.py         # RAFT dense optical flow propagator & Lab de-flicker
+├── scripts/
+│   ├── run_pipeline.py              # Unified pipeline manager CLI
+│   ├── 01_extract_scenes.py         # Stage 1 command wrapper
+│   ├── 02_extract_frames.py         # Stage 2 command wrapper
+│   ├── 03_clip_embeddings.py        # Stage 3 command wrapper
+│   ├── 04_face_embeddings.py        # Stage 4 command wrapper
+│   ├── 05_advanced_matcher.py       # Stage 5 command wrapper
+│   ├── 06_restore_frame.py          # Stage 6 wrapper (v1)
+│   ├── 07_restore_frame_v2.py       # Stage 6 wrapper (v2)
+│   ├── 08_rebuild_video.py          # Stage 7 command wrapper
+│   └── 09_merge_audio.py            # Stage 8 command wrapper
+├── utils/
+│   ├── image_enhancement.py         # Reinhard color transfer, guided filter, CLAHE, unsharp
+│   ├── temporal_utils.py            # Global rolling Lab de-flicker, temporal EMA
+│   └── video_utils.py               # OpenCV metadata, FFmpeg seek wrappers
+├── tests/
+│   └── test_pipeline_redesign.py    # Unit tests for image/temporal utils
 └── requirements.txt                 # Python dependencies
 ```
 
-**Directories you supply (not included in repo):**
-
-| Directory | Contents |
-|---|---|
-| `Albums/` | High-quality reference photos from the wedding photographer |
-| `Representative_Frames/` | Auto-generated by Stage 2 |
-| `data/raw/` | Source video file |
-
 ---
 
-## ⚙️ Installation
+## 🚀 Installation & Execution
 
 ### 1. Prerequisites
-
-| Dependency | Install |
-|---|---|
-| Python ≥ 3.10 | [python.org](https://www.python.org/downloads/) |
-| FFmpeg ≥ 6.0 | [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) (Windows) · `brew install ffmpeg` (macOS) · `apt install ffmpeg` (Linux) |
-| PySceneDetect ≥ 0.6 | `pip install scenedetect[opencv]` |
-| Git | [git-scm.com](https://git-scm.com/) |
-
-Verify FFmpeg is on your system PATH:
-
+Ensure you have `FFmpeg >= 6.0` on your system path.
 ```bash
 ffmpeg -version
-ffprobe -version
 ```
 
-### 2. Clone the Repository
-
+### 2. Virtual Environment Setup
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-video-restoration.git
-cd ai-video-restoration
-```
-
-### 3. Create a Virtual Environment
-
-```bash
-# Create environment
 python -m venv .venv
+.venv\Scripts\activate      # Windows
+source .venv/bin/activate    # macOS/Linux
 
-# Activate — Windows:
-.venv\Scripts\activate
-
-# Activate — macOS / Linux:
-source .venv/bin/activate
-```
-
-### 4. Install Python Dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-> **GPU acceleration (optional but recommended):**
-> ```bash
-> # Replace the CPU PyTorch build with a CUDA build:
-> pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
->
-> # Replace onnxruntime with GPU version for InsightFace:
-> pip uninstall onnxruntime
-> pip install onnxruntime-gpu
-> ```
+### 3. Execution
 
-### 5. Prepare Your Data
-
-Create the following directories and populate them:
-
+#### The Easiest Way: Run the Unified Pipeline
+To execute the complete pipeline from repair to audio merge sequentially:
 ```bash
-mkdir -p Albums data/raw Representative_Frames
+python scripts/run_pipeline.py --stage all
 ```
 
-| Directory | What to put there |
-|---|---|
-| `data/raw/` | Your source video file (`.mp4`) |
-| `Albums/` | High-quality reference photos (`.jpg`, `.jpeg`, `.png`) |
-
-> The `Representative_Frames/` directory is created automatically by Stage 2.
-
-### 6. Verify InsightFace Model Download
-
-The `buffalo_l` model (~350 MB) is downloaded automatically on first run:
-
+#### Resume From Interruption
+If the pipeline is interrupted, re-run without the `--force` flag. It will read cache files, skip completed frames/embeddings, and resume from the exact block where it stopped:
 ```bash
-python -c "from insightface.app import FaceAnalysis; a = FaceAnalysis(name='buffalo_l'); a.prepare(ctx_id=-1)"
+python scripts/run_pipeline.py --stage all
 ```
 
----
-
-## 🚀 Usage
-
-Run the pipeline stages in order. Each stage produces outputs consumed by the next.
-
-### Stage 1 — Detect Scenes
-
+#### Running Specific Stages
+You can execute individual stages or override parameters:
 ```bash
-bash scripts/01_extract_scenes.sh \
-    data/raw/your_video.mp4 \
-    data/scenes.csv
+# Run scene detection only
+python scripts/run_pipeline.py --stage 1
+
+# Re-run matching, forcing overwrite
+python scripts/run_pipeline.py --stage 5 --force
 ```
 
-### Stage 2 — Extract Representative Frames
-
+#### Backward Compatibility Runners
+You can also invoke the original numbered scripts directly:
 ```bash
-bash scripts/02_extract_frames.sh \
-    data/raw/your_video.mp4 \
-    data/scenes.csv \
-    Representative_Frames/
-```
-
-### Stage 3A — Generate CLIP Embeddings
-
-```bash
-python scripts/03_clip_embeddings.py \
-    --albums Albums/ \
-    --frames Representative_Frames/ \
-    --models models/
-```
-
-### Stage 3B — Generate Face Embeddings
-
-```bash
-python scripts/04_face_embeddings.py \
-    --albums Albums/ \
-    --frames Representative_Frames/ \
-    --models models/
-# Add --gpu for faster inference
-```
-
-### Stage 4 — Match Frames to Album Photos
-
-```bash
-python scripts/05_advanced_matcher.py \
-    --models models/ \
-    --output output/ \
-    --top-k 5 \
-    --face-weight 0.70
-```
-
-### Stage 5 — Restore Representative Frames
-
-**v2 (recommended)** — face-affine + detail transfer:
-
-```bash
-python scripts/07_restore_frame_v2.py \
-    --csv output/advanced_matches.csv \
-    --frames Representative_Frames/ \
-    --albums Albums/ \
-    --output output/
-```
-
-**v1 (fallback)** — SIFT homography:
-
-```bash
-python scripts/06_restore_frame.py \
-    --csv output/advanced_matches.csv \
-    --frames Representative_Frames/ \
-    --albums Albums/ \
-    --output output/
-```
-
-### Stage 6 — Reconstruct Full Video
-
-```bash
-python scripts/08_rebuild_video.py \
-    --video data/raw/your_video.mp4 \
-    --scenes data/scenes.csv \
-    --restored-dir output/Restored_Frames/ \
-    --output output/Restored_Wedding_silent.mp4 \
-    --strength 0.72 \
-    --temporal-strength 0.68 \
-    --detail-strength 0.35
-```
-
-### Stage 7 — Merge Original Audio
-
-```bash
-bash scripts/09_merge_audio.sh \
-    output/Restored_Wedding_silent.mp4 \
-    data/raw/your_video.mp4 \
-    output/Restored_Wedding_final.mp4
+python scripts/03_clip_embeddings.py --batch-size 32
+python scripts/05_advanced_matcher.py --top-k 5
 ```
 
 ---
 
-## 🖥️ Sample Commands
+## 🧪 Testing & Verification
 
-For a complete reference of all commands including quality comparison,
-PSNR/SSIM measurement, and utility scripts, see [docs/sample_commands.md](docs/sample_commands.md).
-
-**Quick side-by-side quality comparison:**
-
+Run the test suite using `pytest` to verify image and temporal enhancement functions:
 ```bash
-ffmpeg \
-  -i data/raw/your_video.mp4 \
-  -i output/Restored_Wedding_final.mp4 \
-  -filter_complex "[0:v][1:v]hstack=inputs=2" \
-  -c:v libx264 -crf 18 \
-  output/comparison.mp4
+pytest tests/
 ```
-
----
-
-## ⚡ Performance
-
-| Stage | CPU Time | GPU Time | Notes |
-|---|---|---|---|
-| Scene Detection | ~2 min | — | Per hour of 1080p video |
-| Frame Extraction | ~3 min | — | Per hour of video |
-| CLIP Embeddings | ~8 min | ~1 min | 500 images, ViT-B-32 |
-| Face Embeddings | ~12 min | ~2 min | 500 images, buffalo_l |
-| Hybrid Matching | <1 min | — | 200 frames × 500 album |
-| Frame Restoration v2 | ~15 min | ~3 min | 200 frames |
-| Video Reconstruction | ~45 min | — | Farnebäck flow, 1080p, 1 hour video |
-| Audio Merge | ~30 sec | — | Stream copy, no re-encoding |
-
-> Benchmarks on: Intel i7-12700H, NVIDIA RTX 3060, 32 GB RAM.
-> GPU times require CUDA + onnxruntime-gpu.
-
----
-
-## ⚠️ Known Limitations
-
-1. **SIFT homography failures** — When album photos and video frames have very
-   different crops, angles, or lighting, SIFT finds insufficient matches and
-   the frame falls back to unrestored.
-
-2. **Face-alignment dependency** — v2 restoration quality is highest when both
-   the video frame and the album photo contain a clear, large, frontal face of
-   the same person. Side profiles or occluded faces degrade alignment.
-
-3. **Temporal flickering at scene boundaries** — Optical flow cannot compensate
-   for hard cuts. Frames at the very start of a scene may show brief
-   enhancement discontinuities.
-
-4. **No multi-GPU support** — CLIP inference and InsightFace run on a single
-   GPU. Batch sizes could be tuned for larger GPU memory.
-
-5. **Album photo quality ceiling** — The restoration can only recover detail
-   that exists in the reference album photos. If the album photos are also
-   compressed or blurry, restoration quality is limited.
-
-6. **Audio synchronisation** — If the reconstructed video frame rate drifts
-   from the source (e.g., due to codec rounding), audio may drift slightly.
-   The `-shortest` flag mitigates but does not fully resolve this.
-
----
-
-## 🔮 Future Improvements
-
-- [ ] **Real-ESRGAN integration** — Replace CLAHE + unsharp with a trained
-  super-resolution model for higher perceptual quality.
-- [ ] **RAFT optical flow** — Replace Farnebäck with learning-based RAFT flow
-  for more accurate propagation on complex motion.
-- [ ] **Batch parallelism** — Process multiple scenes concurrently using
-  `multiprocessing` or `concurrent.futures`.
-- [ ] **PySceneDetect adaptive threshold** — Automatically tune detection
-  threshold based on video motion statistics.
-- [ ] **Confidence score calibration** — Use a held-out validation set to
-  calibrate the CLIP/face weighting (70/30) rather than hand-tuning.
-- [ ] **Web interface** — A simple Gradio or Streamlit UI for non-technical
-  users to run the pipeline with drag-and-drop inputs.
-- [ ] **VMAF quality metric** — Replace PSNR/SSIM with VMAF for perceptually
-  accurate quality measurement.
-
----
-
-## 🙏 Credits
-
-This project would not be possible without these outstanding open-source
-projects:
-
-| Project | Authors | Use |
-|---|---|---|
-| [FFmpeg](https://ffmpeg.org/) | FFmpeg developers | Video processing, audio mux, frame extraction |
-| [PySceneDetect](https://github.com/Breakthrough/PySceneDetect) | Brandon Castellano | Scene boundary detection |
-| [OpenCLIP](https://github.com/mlfoundations/open_clip) | ML Foundations / LAION | Visual semantic embeddings |
-| [InsightFace](https://github.com/deepinsight/insightface) | DeepInsight | Face detection and identity embeddings |
-| [OpenCV](https://opencv.org/) | OpenCV team | Image processing, optical flow, feature matching |
-| [PyTorch](https://pytorch.org/) | Meta AI | Deep learning backend |
-| [ONNX Runtime](https://onnxruntime.ai/) | Microsoft | InsightFace CPU/GPU inference |
-| [NumPy](https://numpy.org/) | NumPy community | Numerical computing |
-| [pandas](https://pandas.pydata.org/) | pandas community | CSV/dataframe processing |
-| [tqdm](https://github.com/tqdm/tqdm) | tqdm community | Progress bars |
-
----
-
-## 📋 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for release history.
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
-
-You are free to use, modify, and distribute this code for any purpose,
-including commercial use, with attribution.
-
----
-
-
-> Engineered by **Vivek Sharma**
-
-<div align="center">
-
-Made with ❤️ — an engineering project born from the desire to preserve an
-irreplaceable memory.
-
-</div>
-
