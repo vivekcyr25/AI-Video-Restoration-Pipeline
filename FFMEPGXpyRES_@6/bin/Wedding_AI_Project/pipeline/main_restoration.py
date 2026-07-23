@@ -2,7 +2,7 @@
 pipeline/main_restoration.py
 ============================
 Stage 6: Reference-Guided Frame Restoration.
-Enhances the background using Real-ESRGAN (or high-quality bilateral + unsharp filter fallback).
+Enhances the background using Real-ESRGAN (via the custom RealESRGANEngine).
 Restores the face by transferring high-frequency details from the aligned album photo,
 including eyes, lips, skin, hair, and jewellery without hallucinating details.
 """
@@ -26,6 +26,7 @@ from utils.image_enhancement import (
     edge_enhancement,
     guided_filter,
 )
+from pipeline.realesrgan_engine import RealESRGANEngine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("main_restoration")
@@ -50,7 +51,7 @@ class ReferenceRestorer:
         
         self.restored_dir.mkdir(parents=True, exist_ok=True)
         self.face_cache = self._load_face_cache()
-        self.esrgan_model = self._init_realesrgan()
+        self.esrgan_engine = self._init_realesrgan()
 
     def _load_face_cache(self) -> dict:
         cache_path = self.models_dir / "face_cache.json"
@@ -62,37 +63,18 @@ class ReferenceRestorer:
                 logger.warning(f"Could not load face cache: {e}")
         return {}
 
-    def _init_realesrgan(self):
+    def _init_realesrgan(self) -> RealESRGANEngine | None:
         if not self.use_realesrgan:
             return None
-            
         try:
-            # Attempt to import RealESRGANer
-            from realesrgan import RealESRGANer
-            from basicsr.archs.rrdbnet_arch import RRDBNet
-            
-            # Select model config based on config name
-            if "anime" in self.realesrgan_model:
-                model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=6, num_grow_ch=32, scale=4)
-            else:
-                model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
-                
-            # Download weights if not locally cached by basicsr
-            # For simplicity, we initialize the model with basicsr default paths
-            upscaler = RealESRGANer(
-                scale=4,
-                model_path=None,  # Automatically downloads weight
-                model=model,
-                tile=400,
-                tile_pad=10,
-                pre_pad=0,
-                half=self.realesrgan_half and (self.device == "cuda"),
+            engine = RealESRGANEngine(
+                model_name=self.realesrgan_model,
+                models_dir=str(self.models_dir),
                 device=self.device
             )
-            logger.info("Real-ESRGAN initialized successfully.")
-            return upscaler
+            return engine
         except Exception as e:
-            logger.warning(f"Could not load Real-ESRGAN: {e}. Falling back to classical super-resolution.")
+            logger.warning(f"Could not initialize RealESRGANEngine: {e}. Falling back to standard filters.")
             return None
 
     def _enhance_background(self, img: np.ndarray) -> np.ndarray:
@@ -101,40 +83,26 @@ class ReferenceRestorer:
         denoised = cv2.bilateralFilter(img, d=9, sigmaColor=75, sigmaSpace=75)
         
         # 2. Super-resolution (ESRGAN or Lanczos)
-        if self.esrgan_model is not None:
+        if self.esrgan_engine is not None:
             try:
-                # Real-ESRGAN expects BGR input
-                sr_bgr, _ = self.esrgan_model.enhance(denoised, outscale=2)
+                # Upscale background using Real-ESRGAN BGR
+                sr_bgr = self.esrgan_engine.enhance(
+                    denoised,
+                    tile_size=256,
+                    tile_pad=10,
+                    outscale=2.0
+                )
                 # Apply edge enhancement to super-resolved background
                 sharpened = edge_enhancement(sr_bgr, strength=self.config["restoration"]["unsharp_strength"])
                 return sharpened
             except Exception as e:
-                logger.warning(f"ESRGAN inference failed: {e}. Falling back to Lanczos.")
+                logger.warning(f"RealESRGANEngine inference failed: {e}. Falling back to Lanczos.")
                 
         # Fallback super-resolution (Lanczos)
         h, w = img.shape[:2]
         sr_bgr = cv2.resize(denoised, (w * 2, h * 2), interpolation=cv2.INTER_LANCZOS4)
         sharpened = edge_enhancement(sr_bgr, strength=self.config["restoration"]["unsharp_strength"])
         return sharpened
-
-    def _align_face(
-        self,
-        src_img: np.ndarray,
-        src_kps: np.ndarray,
-        tgt_shape: tuple[int, int, int]
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Align source face (album) to target face (frame) shape using 5-point affine warp."""
-        tgt_h, tgt_w = tgt_shape[:2]
-        
-        # We need target landmarks to align
-        # Standard landmarks crop matrix
-        # Let's map album landmarks to targets using partial affine
-        # targets = targets_scale * [x, y] + translation
-        src_pts = src_kps.astype(np.float32)
-        
-        # Standard target landmarks normalized coordinates
-        # Map source to a canonical 112x112 or target coordinates directly
-        return src_pts
 
     def _get_component_masks(
         self,
@@ -216,32 +184,29 @@ class ReferenceRestorer:
             logger.info(f"Skipping face-guided warp for {f_name}: face missing in frame or album.")
             return frame_bg
             
-        # Load original images to perform warp at high resolution
         album = cv2.imread(str(self.albums_dir / a_name))
         if album is None:
             return frame_bg
             
-        # Extract landmarks and scale to upscaled resolution
+        # Landmarks scaled to high-res
         f_kps = np.array(f_cache["kps"]) * scale
         a_kps = np.array(a_cache["kps"])
         
-        # Compute affine transform to warp album onto frame
+        # Affine transform matrix
         M, inliers = cv2.estimateAffinePartial2D(a_kps, f_kps)
         if M is None:
             logger.warning(f"Could not compute affine transform for {f_name}")
             return frame_bg
             
-        # Warp album photo
         h_bg, w_bg = frame_bg.shape[:2]
         warped_album = cv2.warpAffine(album, M, (w_bg, h_bg), flags=cv2.INTER_CUBIC)
         
-        # Compute component masks at upscaled resolution
+        # Masks
         face_size = np.linalg.norm(f_kps[1] - f_kps[0])
         mask_eyes, mask_lips, mask_skin, mask_hair, mask_jewel = self._get_component_masks(
             frame_bg.shape, f_kps, face_size
         )
         
-        # Expand masks to 3-channels
         mask_eyes_3c = np.expand_dims(mask_eyes, axis=2)
         mask_lips_3c = np.expand_dims(mask_lips, axis=2)
         mask_skin_3c = np.expand_dims(mask_skin, axis=2)
@@ -250,23 +215,17 @@ class ReferenceRestorer:
         
         output = frame_bg.copy()
         
-        # 1. Restore Eyes and Lips (directly blend album components)
-        # Warp contains the high-fidelity features
+        # 1. Restore Eyes and Lips (blend directly)
         output = (output * (1.0 - mask_eyes_3c) + warped_album * mask_eyes_3c).astype(np.uint8)
         output = (output * (1.0 - mask_lips_3c) + warped_album * mask_lips_3c).astype(np.uint8)
         
         # 2. Restore Skin (color transfer + guided filter smoothing)
-        # Transfer color from warped album to the skin region
         skin_color = color_transfer(warped_album, output)
-        
-        # Smooth out compression blocks using Guided Filter on the skin region
         guidance = cv2.cvtColor(skin_color, cv2.COLOR_BGR2GRAY)
         smoothed_skin = guided_filter(guidance, skin_color, r=8, eps=0.01)
-        
         output = (output * (1.0 - mask_skin_3c) + smoothed_skin * mask_skin_3c).astype(np.uint8)
         
-        # 3. Restore Hair (transfer high-frequency details from album hair)
-        # High frequency detail extraction
+        # 3. Restore Hair (high-frequency detail transfer)
         album_gray = cv2.cvtColor(warped_album, cv2.COLOR_BGR2GRAY)
         album_smooth = cv2.GaussianBlur(album_gray, (0, 0), 2.0)
         album_detail = cv2.subtract(album_gray, album_smooth)
@@ -275,16 +234,10 @@ class ReferenceRestorer:
         hair_enhanced = cv2.add(output, album_detail_3c)
         output = (output * (1.0 - mask_hair_3c) + hair_enhanced * mask_hair_3c).astype(np.uint8)
         
-        # 4. Restore Jewellery (unsharp detail transfer in jewellery region)
+        # 4. Restore Jewellery (unsharp detail transfer)
         jewel_enhanced = cv2.addWeighted(output, 1.0, warped_album, 0.4, 0)
         output = (output * (1.0 - mask_jewel_3c) + jewel_enhanced * mask_jewel_3c).astype(np.uint8)
         
-        # Optional: Save debug checkpoints for masks/faces
-        debug_dir = self.output_dir / "debug_masks"
-        if debug_dir.exists():
-            cv2.imwrite(str(debug_dir / f"{Path(f_name).stem}_eyes.jpg"), (mask_eyes * 255).astype(np.uint8))
-            cv2.imwrite(str(debug_dir / f"{Path(f_name).stem}_skin.jpg"), (mask_skin * 255).astype(np.uint8))
-            
         return output
 
     def run(self, force: bool = False) -> None:
@@ -295,7 +248,6 @@ class ReferenceRestorer:
             raise FileNotFoundError(f"Matches CSV not found at {matches_csv}. Run Stage 5 first.")
             
         df = pd.read_csv(matches_csv)
-        # Parse top match (Rank 1) for each frame
         top_matches = df[df["Rank"] == 1]
         
         processed_log = self.output_dir / "restore_log.csv"
@@ -310,7 +262,7 @@ class ReferenceRestorer:
                 
         log_rows = []
         
-        for _, row in tqdm(top_matches.iterrows(), total=len(top_matches), unit="frame"):
+        for _, row in tqdm(top_matches.iterrows(), total=len(top_matches), desc="Restoring Keyframes"):
             f_name = str(row["Frame"])
             a_name = str(row["AlbumImage"])
             
@@ -323,17 +275,15 @@ class ReferenceRestorer:
                 logger.warning(f"Frame image not found: {f_name}")
                 continue
                 
-            # 1. Enhance and upscale background
+            # Enhance background (Real-ESRGAN upscales 2x)
             enhanced_bg = self._enhance_background(frame_img)
             
-            # 2. Align and restore face regions (identity preservation)
+            # Align and restore face
             restored = self._restore_face_regions(enhanced_bg, f_name, a_name, scale=2.0)
             
-            # Save output frame (at 2x resolution)
             cv2.imwrite(str(out_path), restored)
             log_rows.append([f_name, a_name, "success"])
             
-        # Append to log
         log_exists = processed_log.exists()
         with open(processed_log, "a" if log_exists else "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
@@ -343,9 +293,9 @@ class ReferenceRestorer:
             
         logger.info(f"Stage 6 completed. Restored frames saved to {self.restored_dir}")
         
-        # Clear VRAM cache
-        if self.esrgan_model is not None:
-            del self.esrgan_model
+        # Release CUDA VRAM
+        if self.esrgan_engine is not None:
+            del self.esrgan_engine
         if self.device == "cuda":
             torch.cuda.empty_cache()
 
