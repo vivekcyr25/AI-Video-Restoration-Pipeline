@@ -105,7 +105,8 @@ def load_scenes(csv_path: Path) -> list[Scene]:
     scenes: list[Scene] = []
 
     with csv_path.open("r", newline="", encoding="utf-8-sig") as fh:
-        reader = csv.DictReader(fh)
+        lines = [line for line in fh if line.strip()]
+        reader = csv.DictReader(lines)
         fields = list(reader.fieldnames or [])
 
         col_scene   = _find_col(fields, _COL_SCENE)
