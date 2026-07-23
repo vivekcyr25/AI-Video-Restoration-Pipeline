@@ -2,16 +2,16 @@
 # Optimized for RTX 3050 4GB (Low VRAM)
 
 global:
-  device: "cuda"                  # "cuda" or "cpu"
-  video_path: "data/raw/Wedding_Compressed_AAC.mp4"
-  albums_dir: "Albums"
-  models_dir: "models"
-  output_dir: "output"
+  device: "cuda"
+  video_path: "Wedding_Compressed_AAC.mp4"
+  albums_dir: "Albums_sample"
+  models_dir: "Models"
+  output_dir: "Output"
 
 video_repair:
-  repaired_video_path: "output/repaired_video.mp4"
-  cfr_video_path: "output/cfr_video.mp4"
-  scene_csv_path: "output/scenes.csv"
+  repaired_video_path: "Output/repaired_video.mp4"
+  cfr_video_path: "Output/cfr_video.mp4"
+  scene_csv_path: "Output/scenes.csv"
   scene_threshold: 27.0
   min_scene_len: 15
   fps: 30.0
@@ -27,7 +27,7 @@ clip_embeddings:
 
 face_embeddings:
   detection_size: [640, 640]
-  face_cache_path: "models/face_cache.json"
+  face_cache_path: "Models/face_cache.json"
 
 hybrid_matching:
   top_k: 5
@@ -40,7 +40,7 @@ hybrid_matching:
   lpips_backbone: "vgg16"          # Builtin PyTorch VGG16 in FP16
 
 restoration:
-  output_dir: "output/Restored_Frames"
+  output_dir: "Output/Restored_Frames"
   strength: 0.72                  # Global enhancement intensity (0.0 - 1.0)
   face_alignment_scale: 1.55      # Expanded box around face landmarks
   denoise_bilateral_d: 9          # Bilateral filter diameter
@@ -52,8 +52,8 @@ restoration:
   realesrgan_half: true           # Use FP16 for Real-ESRGAN
 
 video_propagation:
-  output_silent: "output/Restored_Wedding_silent.mp4"
-  output_final: "output/Restored_Wedding_final.mp4"
+  output_silent: "Output/Restored_Wedding_silent.mp4"
+  output_final: "Output/Restored_Wedding_final.mp4"
   model_type: "raft_small"         # torchvision RAFT-small for low VRAM
   strength: 0.72
   temporal_strength: 0.68
