@@ -184,9 +184,16 @@ def guided_filter(I: np.ndarray, p: np.ndarray, r: int = 4, eps: float = 0.01) -
     if p_is_uint8:
         p = p.astype(np.float32) / 255.0
         
+    # Expand dimensions of guidance image if it is grayscale and input is color
+    if I.ndim == 2 and p.ndim == 3:
+        I = np.expand_dims(I, axis=-1)
+        
     # Helper to calculate local mean
     def mean_filter(img):
-        return cv2.boxFilter(img, -1, (r, r), borderType=cv2.BORDER_REFLECT)
+        res = cv2.boxFilter(img, -1, (r, r), borderType=cv2.BORDER_REFLECT)
+        if img.ndim == 3 and res.ndim == 2:
+            res = np.expand_dims(res, axis=-1)
+        return res
         
     mean_I = mean_filter(I)
     mean_p = mean_filter(p)
