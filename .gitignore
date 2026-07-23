@@ -44,6 +44,8 @@ data/raw/
 Representative_Frames/
 Albums/
 Albums_sample/
+albums_sample/
+
 
 # ── Python cache & bytecode ────────────────────
 __pycache__/
