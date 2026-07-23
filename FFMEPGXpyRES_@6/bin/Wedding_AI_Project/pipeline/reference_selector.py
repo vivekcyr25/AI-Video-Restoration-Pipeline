@@ -21,37 +21,17 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
-import torch
-import torchvision.models as models
 from tqdm import tqdm
 
-from utils.image_enhancement import compute_histogram, histogram_similarity
+from utils.image_utils import compute_histogram, histogram_similarity
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("reference_selector")
 
 
-class VGGPerceptualLoss(torch.nn.Module):
-    """VGG16-based Perceptual Similarity metric (LPIPS equivalent)."""
-    def __init__(self):
-        super().__init__()
-        vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
-        self.slice1 = torch.nn.Sequential(*list(vgg.children())[:4])   # conv1_2
-        self.slice2 = torch.nn.Sequential(*list(vgg.children())[4:9])   # conv2_2
-        self.slice3 = torch.nn.Sequential(*list(vgg.children())[9:16])  # conv3_3
-        for param in self.parameters():
-            param.requires_grad = False
-
-    def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
-        h1 = self.slice1(x)
-        h2 = self.slice2(h1)
-        h3 = self.slice3(h2)
-        # L2 normalize feature maps channel-wise
-        return [h / (h.norm(dim=1, keepdim=True) + 1e-10) for h in [h1, h2, h3]]
-
-
 class ReferenceSelectorStage:
     def __init__(self, config: dict):
+        import torch
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() and config["global"]["device"] == "cuda" else "cpu"
         self.albums_dir = Path(config["global"]["albums_dir"])
@@ -88,7 +68,8 @@ class ReferenceSelectorStage:
             logger.warning(f"Error loading face metadata for {prefix}: {e}")
             return {}
 
-    def _preprocess_lpips(self, img_path: Path) -> torch.Tensor:
+    def _preprocess_lpips(self, img_path: Path):
+        import torch
         img = cv2.imread(str(img_path))
         if img is None:
             return torch.zeros((1, 3, 224, 224), dtype=torch.float32)
@@ -99,6 +80,27 @@ class ReferenceSelectorStage:
         return tensor.unsqueeze(0)
 
     def run(self, force: bool = False) -> None:
+        import torch
+        import torchvision.models as models
+
+        class VGGPerceptualLoss(torch.nn.Module):
+            """VGG16-based Perceptual Similarity metric (LPIPS equivalent)."""
+            def __init__(self):
+                super().__init__()
+                vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
+                self.slice1 = torch.nn.Sequential(*list(vgg.children())[:4])   # conv1_2
+                self.slice2 = torch.nn.Sequential(*list(vgg.children())[4:9])   # conv2_2
+                self.slice3 = torch.nn.Sequential(*list(vgg.children())[9:16])  # conv3_3
+                for param in self.parameters():
+                    param.requires_grad = False
+
+            def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
+                h1 = self.slice1(x)
+                h2 = self.slice2(h1)
+                h3 = self.slice3(h2)
+                # L2 normalize feature maps channel-wise
+                return [h / (h.norm(dim=1, keepdim=True) + 1e-10) for h in [h1, h2, h3]]
+
         logger.info("Running Reference Selector Stage")
         out_csv = self.output_dir / "advanced_matches.csv"
         

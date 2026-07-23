@@ -20,8 +20,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
-import torch
-import torchvision.models.optical_flow as opt_flow
+import cv2
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 from utils.temporal_utils import remove_flicker_global
@@ -31,8 +32,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("video_propagation")
 
 
-def warp_flow(img: torch.Tensor, flow: torch.Tensor) -> torch.Tensor:
+def warp_flow(img, flow):
     """Warp image tensor of shape (B, C, H, W) using flow tensor of shape (B, 2, H, W) via grid_sample."""
+    import torch
     B, C, H, W = img.size()
     yy, xx = torch.meshgrid(
         torch.arange(0, H, device=img.device, dtype=torch.float32),
@@ -50,8 +52,9 @@ def warp_flow(img: torch.Tensor, flow: torch.Tensor) -> torch.Tensor:
     return output
 
 
-def pad_to_multiple(img: torch.Tensor, divisor: int = 8) -> tuple[torch.Tensor, int, int]:
+def pad_to_multiple(img, divisor: int = 8):
     """Pad tensor dimensions to be divisible by divisor for RAFT processing."""
+    import torch
     h, w = img.shape[-2:]
     pad_h = (divisor - h % divisor) % divisor
     pad_w = (divisor - w % divisor) % divisor
@@ -62,6 +65,7 @@ def pad_to_multiple(img: torch.Tensor, divisor: int = 8) -> tuple[torch.Tensor, 
 
 class VideoPropagationStage:
     def __init__(self, config: dict):
+        import torch
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() and config["global"]["device"] == "cuda" else "cpu"
         self.cfr_path = Path(config["video_repair"]["cfr_video_path"])
@@ -84,6 +88,7 @@ class VideoPropagationStage:
         self.raft_model = self._init_raft()
 
     def _init_raft(self):
+        import torchvision.models.optical_flow as opt_flow
         logger.info(f"Initializing optical flow model: {self.model_type}")
         if self.model_type == "raft_small":
             model = opt_flow.raft_small(weights=opt_flow.Raft_Small_Weights.DEFAULT)
@@ -116,7 +121,8 @@ class VideoPropagationStage:
             })
         return scenes
 
-    def _compute_flow(self, img1: torch.Tensor, img2: torch.Tensor) -> torch.Tensor:
+    def _compute_flow(self, img1, img2):
+        import torch
         img1_pad, pad_h, pad_w = pad_to_multiple(img1)
         img2_pad, _, _ = pad_to_multiple(img2)
         with torch.inference_mode():
@@ -127,6 +133,7 @@ class VideoPropagationStage:
         return flow
 
     def run(self, force: bool = False) -> None:
+        import torch
         logger.info("Starting Stage 7: Video Detail Propagation (RAFT)")
         
         if self.output_silent.exists() and not force:

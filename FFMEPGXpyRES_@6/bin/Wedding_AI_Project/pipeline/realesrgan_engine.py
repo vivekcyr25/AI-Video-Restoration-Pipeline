@@ -18,73 +18,82 @@ import threading
 
 import cv2
 import numpy as np
-import torch
-import torch.nn as nn
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("realesrgan_engine")
 
 
-class ResidualDenseBlock(nn.Module):
-    def __init__(self, nf: int = 64, gc: int = 32, bias: bool = True):
-        super().__init__()
-        self.conv1 = nn.Conv2d(nf, gc, 3, 1, 1, bias=bias)
-        self.conv2 = nn.Conv2d(nf + gc, gc, 3, 1, 1, bias=bias)
-        self.conv3 = nn.Conv2d(nf + 2 * gc, gc, 3, 1, 1, bias=bias)
-        self.conv4 = nn.Conv2d(nf + 3 * gc, gc, 3, 1, 1, bias=bias)
-        self.conv5 = nn.Conv2d(nf + 4 * gc, nf, 3, 1, 1, bias=bias)
-        self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+_classes_cache = None
+
+def _get_model_classes():
+    global _classes_cache
+    if _classes_cache is not None:
+        return _classes_cache
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x1 = self.lrelu(self.conv1(x))
-        x2 = self.lrelu(self.conv2(torch.cat((x, x1), 1)))
-        x3 = self.lrelu(self.conv3(torch.cat((x, x1, x2), 1)))
-        x4 = self.lrelu(self.conv4(torch.cat((x, x1, x2, x3), 1)))
-        x5 = self.conv5(torch.cat((x, x1, x2, x3, x4), 1))
-        return x5 * 0.2 + x
+    import torch
+    import torch.nn as nn
 
-
-class RRDB(nn.Module):
-    def __init__(self, nf: int = 64, gc: int = 32):
-        super().__init__()
-        self.rdb1 = ResidualDenseBlock(nf, gc)
-        self.rdb2 = ResidualDenseBlock(nf, gc)
-        self.rdb3 = ResidualDenseBlock(nf, gc)
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out = self.rdb1(x)
-        out = self.rdb2(out)
-        out = self.rdb3(out)
-        return out * 0.2 + x
-
-
-class RRDBNet(nn.Module):
-    def __init__(self, in_nc: int = 3, out_nc: int = 3, nf: int = 64, nb: int = 6, gc: int = 32, scale: int = 4):
-        super().__init__()
-        self.conv_first = nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True)
-        self.body = nn.Sequential(*[RRDB(nf, gc) for _ in range(nb)])
-        self.conv_body = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
-        self.conv_up1 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
-        self.conv_up2 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
-        self.conv_hr = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
-        self.conv_last = nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)
-        self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
-        self.scale = scale
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        fea = self.conv_first(x)
-        trunk = self.conv_body(self.body(fea))
-        fea = fea + trunk
-        
-        # Upsampling
-        if self.scale == 4:
-            fea = self.lrelu(self.conv_up1(nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
-            fea = self.lrelu(self.conv_up2(nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
-        elif self.scale == 2:
-            fea = self.lrelu(self.conv_up1(nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
+    class ResidualDenseBlock(nn.Module):
+        def __init__(self, nf: int = 64, gc: int = 32, bias: bool = True):
+            super().__init__()
+            self.conv1 = nn.Conv2d(nf, gc, 3, 1, 1, bias=bias)
+            self.conv2 = nn.Conv2d(nf + gc, gc, 3, 1, 1, bias=bias)
+            self.conv3 = nn.Conv2d(nf + 2 * gc, gc, 3, 1, 1, bias=bias)
+            self.conv4 = nn.Conv2d(nf + 3 * gc, gc, 3, 1, 1, bias=bias)
+            self.conv5 = nn.Conv2d(nf + 4 * gc, nf, 3, 1, 1, bias=bias)
+            self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
             
-        out = self.conv_last(self.lrelu(self.conv_hr(fea)))
-        return out
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            x1 = self.lrelu(self.conv1(x))
+            x2 = self.lrelu(self.conv2(torch.cat((x, x1), 1)))
+            x3 = self.lrelu(self.conv3(torch.cat((x, x1, x2), 1)))
+            x4 = self.lrelu(self.conv4(torch.cat((x, x1, x2, x3), 1)))
+            x5 = self.conv5(torch.cat((x, x1, x2, x3, x4), 1))
+            return x5 * 0.2 + x
+
+    class RRDB(nn.Module):
+        def __init__(self, nf: int = 64, gc: int = 32):
+            super().__init__()
+            self.rdb1 = ResidualDenseBlock(nf, gc)
+            self.rdb2 = ResidualDenseBlock(nf, gc)
+            self.rdb3 = ResidualDenseBlock(nf, gc)
+            
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            out = self.rdb1(x)
+            out = self.rdb2(out)
+            out = self.rdb3(out)
+            return out * 0.2 + x
+
+    class RRDBNet(nn.Module):
+        def __init__(self, in_nc: int = 3, out_nc: int = 3, nf: int = 64, nb: int = 6, gc: int = 32, scale: int = 4):
+            super().__init__()
+            self.conv_first = nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True)
+            self.body = nn.Sequential(*[RRDB(nf, gc) for _ in range(nb)])
+            self.conv_body = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+            self.conv_up1 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+            self.conv_up2 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+            self.conv_hr = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+            self.conv_last = nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)
+            self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+            self.scale = scale
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            fea = self.conv_first(x)
+            trunk = self.conv_body(self.body(fea))
+            fea = fea + trunk
+            
+            # Upsampling
+            if self.scale == 4:
+                fea = self.lrelu(self.conv_up1(nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
+                fea = self.lrelu(self.conv_up2(nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
+            elif self.scale == 2:
+                fea = self.lrelu(self.conv_up1(nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
+                
+            out = self.conv_last(self.lrelu(self.conv_hr(fea)))
+            return out
+
+    _classes_cache = (ResidualDenseBlock, RRDB, RRDBNet)
+    return _classes_cache
 
 
 class RealESRGANEngine:
@@ -102,6 +111,7 @@ class RealESRGANEngine:
         if self._initialized:
             return
             
+        import torch
         self.model_name = model_name
         self.models_dir = Path(models_dir)
         self.models_dir.mkdir(parents=True, exist_ok=True)
@@ -140,7 +150,9 @@ class RealESRGANEngine:
             logger.error(f"Failed to download weights from {url}: {e}")
             raise
 
-    def _load_model(self) -> RRDBNet:
+    def _load_model(self):
+        import torch
+        _, _, RRDBNet = _get_model_classes()
         logger.info(f"Loading RRDBNet (nb={self.nb}) onto {self.device}...")
         model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=self.nb, gc=32, scale=4)
         
@@ -169,6 +181,7 @@ class RealESRGANEngine:
         Enhance BGR image using tiled inference to conserve VRAM.
         Handles FP16, tile blending, and automatic CPU fallback on OOM.
         """
+        import torch
         h, w, c = img.shape
         # Normalize and convert to torch float tensor
         img_t = torch.from_numpy(img).permute(2, 0, 1).float() / 255.0
@@ -207,8 +220,9 @@ class RealESRGANEngine:
             
         return output_np
 
-    def _tile_inference(self, img: torch.Tensor, tile_size: int, tile_pad: int, outscale: float) -> torch.Tensor:
+    def _tile_inference(self, img, tile_size: int, tile_pad: int, outscale: float):
         """Runs inference tile-by-tile and blends results seamlessly."""
+        import torch
         b, c, h, w = img.size()
         scale = 4  # RRDBNet is built for 4x
         
