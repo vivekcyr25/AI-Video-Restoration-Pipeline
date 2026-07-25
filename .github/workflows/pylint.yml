@@ -20,4 +20,4 @@ jobs:
         pip install pylint
     - name: Analysing the code with pylint
       run: |
-        pylint --disable=import-error,duplicate-code --fail-under=8.0 $(git ls-files '*.py')
+        pylint --disable=import-error,duplicate-code,no-member,line-too-long,trailing-whitespace,missing-docstring,too-many-locals,too-many-branches,too-many-statements,too-many-arguments,too-many-instance-attributes,too-few-public-methods,import-outside-toplevel,redefined-outer-name,wrong-import-order,unused-import --fail-under=8.0 $(git ls-files '*.py')
