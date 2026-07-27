@@ -30,7 +30,7 @@ def main() -> None:
         config = yaml.safe_load(f)
 
     if args.video:
-        config["video_repair"]["cfr_video_path"] = str(args.video)
+        config["video_repair"]["repaired_video_path"] = str(args.video)
     if args.scenes:
         config["video_repair"]["scene_csv_path"] = str(args.scenes)
     if args.output_dir:

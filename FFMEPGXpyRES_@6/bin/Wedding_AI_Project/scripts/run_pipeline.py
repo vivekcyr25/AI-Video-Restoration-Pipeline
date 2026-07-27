@@ -10,11 +10,17 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import subprocess
 import time
 import sys
 from pathlib import Path
 import yaml
+
+# Ensure the local FFmpeg/ffprobe binaries are on PATH if they exist
+_local_bin = Path(__file__).resolve().parent.parent.parent
+if _local_bin.exists() and str(_local_bin) not in os.environ["PATH"]:
+    os.environ["PATH"] = str(_local_bin) + os.pathsep + os.environ["PATH"]
 
 # Insert project root to path for absolute imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

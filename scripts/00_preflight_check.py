@@ -24,9 +24,15 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import os
 import shutil
 import sys
 from pathlib import Path
+
+# Ensure the local FFmpeg/ffprobe binaries are on PATH if they exist
+_local_bin = Path(__file__).resolve().parent.parent / "FFMEPGXpyRES_@6" / "bin"
+if _local_bin.exists() and str(_local_bin) not in os.environ["PATH"]:
+    os.environ["PATH"] = str(_local_bin) + os.pathsep + os.environ["PATH"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
