@@ -18,6 +18,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from utils.image_enhancement import (
     apply_clahe,
     color_transfer,
@@ -27,6 +28,37 @@ from utils.image_enhancement import (
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("main_restoration")
+
+def _make_ops_safe(primary: np.ndarray, secondary: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Ensure primary and secondary images have same size, channels, and dtype for OpenCV math ops."""
+    # 1. Dtype alignment
+    if primary.dtype != secondary.dtype:
+        primary = primary.astype(np.uint8)
+        secondary = secondary.astype(np.uint8)
+        
+    # 2. Size alignment (resize secondary to match primary)
+    ph, pw = primary.shape[:2]
+    sh, sw = secondary.shape[:2]
+    if ph != sh or pw != sw:
+        secondary = cv2.resize(secondary, (pw, ph), interpolation=cv2.INTER_CUBIC)
+        
+    # 3. Channel alignment
+    pc = primary.shape[2] if len(primary.shape) > 2 else 1
+    sc = secondary.shape[2] if len(secondary.shape) > 2 else 1
+    
+    if pc != sc:
+        if pc == 3 and sc == 1:
+            # convert grayscale -> BGR
+            if len(secondary.shape) == 3 and secondary.shape[2] == 1:
+                secondary = np.squeeze(secondary, axis=2)
+            secondary = cv2.cvtColor(secondary, cv2.COLOR_GRAY2BGR)
+        elif pc == 1 and sc == 3:
+            # convert BGR -> grayscale
+            secondary = cv2.cvtColor(secondary, cv2.COLOR_BGR2GRAY)
+            if len(primary.shape) == 3 and primary.shape[2] == 1:
+                secondary = np.expand_dims(secondary, axis=2)
+                
+    return primary, secondary
 
 
 class ReferenceRestorer:
@@ -227,13 +259,23 @@ class ReferenceRestorer:
         # 3. Restore Hair (high-frequency detail transfer)
         album_gray = cv2.cvtColor(warped_album, cv2.COLOR_BGR2GRAY)
         album_smooth = cv2.GaussianBlur(album_gray, (0, 0), 2.0)
+        
+        # Check/make safe before cv2.subtract
+        logger.info(f"Before cv2.subtract: album_gray.shape={album_gray.shape}, album_smooth.shape={album_smooth.shape}")
+        album_gray, album_smooth = _make_ops_safe(album_gray, album_smooth)
         album_detail = cv2.subtract(album_gray, album_smooth)
         album_detail_3c = np.expand_dims(album_detail, axis=2)
         
+        # Check/make safe before cv2.add
+        logger.info(f"Before cv2.add: output.shape={output.shape}, album_detail_3c.shape={album_detail_3c.shape}")
+        output, album_detail_3c = _make_ops_safe(output, album_detail_3c)
         hair_enhanced = cv2.add(output, album_detail_3c)
         output = (output * (1.0 - mask_hair_3c) + hair_enhanced * mask_hair_3c).astype(np.uint8)
         
         # 4. Restore Jewellery (unsharp detail transfer)
+        # Check/make safe before cv2.addWeighted
+        logger.info(f"Before cv2.addWeighted: output.shape={output.shape}, warped_album.shape={warped_album.shape}")
+        output, warped_album = _make_ops_safe(output, warped_album)
         jewel_enhanced = cv2.addWeighted(output, 1.0, warped_album, 0.4, 0)
         output = (output * (1.0 - mask_jewel_3c) + jewel_enhanced * mask_jewel_3c).astype(np.uint8)
         

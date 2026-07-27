@@ -10,12 +10,18 @@ helpful error messages when FFmpeg or OpenCV operations fail.
 from __future__ import annotations
 
 import math
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional
 
 import cv2
 import numpy as np
+
+# Ensure the local FFmpeg/ffprobe binaries are on PATH if they exist
+_local_bin = Path(__file__).resolve().parent.parent.parent
+if _local_bin.exists() and str(_local_bin) not in os.environ["PATH"]:
+    os.environ["PATH"] = str(_local_bin) + os.pathsep + os.environ["PATH"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

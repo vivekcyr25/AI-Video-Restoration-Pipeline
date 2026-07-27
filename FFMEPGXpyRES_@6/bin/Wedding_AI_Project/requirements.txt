@@ -26,9 +26,9 @@ torchvision>=0.15.0
 # ── Face Detection & Embedding (InsightFace) ──────────────────────────────────
 # Model used: buffalo_l (downloaded automatically on first run)
 insightface>=0.7.3
-onnxruntime>=1.15.0          # CPU inference backend
+# onnxruntime>=1.15.0          # CPU inference backend
 # For GPU: install onnxruntime-gpu instead of onnxruntime
-# onnxruntime-gpu>=1.15.0
+onnxruntime-gpu>=1.15.0
 
 # ── Image & Scientific Processing ─────────────────────────────────────────────
 Pillow>=10.0.0

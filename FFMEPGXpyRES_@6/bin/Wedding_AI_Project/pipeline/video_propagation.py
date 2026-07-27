@@ -68,7 +68,7 @@ class VideoPropagationStage:
         import torch
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() and config["global"]["device"] == "cuda" else "cpu"
-        self.cfr_path = Path(config["video_repair"]["cfr_video_path"])
+        self.repaired_path = Path(config["video_repair"]["repaired_video_path"])
         self.scene_csv_path = Path(config["video_repair"]["scene_csv_path"])
         self.restored_dir = Path(config["restoration"]["output_dir"])
         
@@ -141,9 +141,9 @@ class VideoPropagationStage:
             return
             
         scenes = self._get_scenes()
-        cap = cv2.VideoCapture(str(self.cfr_path))
+        cap = cv2.VideoCapture(str(self.repaired_path))
         if not cap.isOpened():
-            raise RuntimeError(f"Could not open CFR video: {self.cfr_path}")
+            raise RuntimeError(f"Could not open repaired video: {self.repaired_path}")
             
         sample_frame_path = next(self.restored_dir.glob("*.jpg"), None)
         if sample_frame_path is None:

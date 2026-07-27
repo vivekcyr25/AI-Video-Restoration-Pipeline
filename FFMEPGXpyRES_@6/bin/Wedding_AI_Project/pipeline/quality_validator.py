@@ -33,7 +33,7 @@ class QualityValidator:
         import torch
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() and config["global"]["device"] == "cuda" else "cpu"
-        self.cfr_path = Path(config["video_repair"]["cfr_video_path"])
+        self.repaired_path = Path(config["video_repair"]["repaired_video_path"])
         self.output_final = Path(config["video_propagation"]["output_final"])
         self.restored_dir = Path(config["restoration"]["output_dir"])
         self.albums_dir = Path(config["global"]["albums_dir"])
@@ -81,7 +81,7 @@ class QualityValidator:
         
         # Load final video
         cap_restored = cv2.VideoCapture(str(self.output_final))
-        cap_original = cv2.VideoCapture(str(self.cfr_path))
+        cap_original = cv2.VideoCapture(str(self.repaired_path))
         
         if not cap_restored.isOpened() or not cap_original.isOpened():
             logger.error("Could not open restored or original video for validation.")

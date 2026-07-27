@@ -1,0 +1,12 @@
+# This directory stores all generated outputs.
+# These files are excluded from version control (see .gitignore).
+#
+# Contents after running the full pipeline:
+#
+#   advanced_matches.csv        — Frame-to-album match rankings (Stage 4)
+#   matches.csv                 — Basic CLIP-only match output (early version)
+#   restore_log.csv             — Per-frame restoration status log (Stage 5)
+#   Restored_Frames/            — Restored representative frame JPEGs (Stage 5)
+#   Restored_Wedding_silent.mp4 — Reconstructed video without audio (Stage 6)
+#   Restored_Wedding_final.mp4  — Final output with original audio (Stage 7)
+#   comparison_side_by_side.mp4 — Optional side-by-side quality comparison

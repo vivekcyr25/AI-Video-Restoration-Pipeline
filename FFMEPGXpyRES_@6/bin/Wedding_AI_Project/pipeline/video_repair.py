@@ -15,6 +15,11 @@ from pathlib import Path
 
 from scenedetect import ContentDetector, SceneManager, open_video
 
+# Ensure the local FFmpeg/ffprobe binaries are on PATH if they exist
+_local_bin = Path(__file__).resolve().parent.parent.parent
+if _local_bin.exists() and str(_local_bin) not in os.environ["PATH"]:
+    os.environ["PATH"] = str(_local_bin) + os.pathsep + os.environ["PATH"]
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("video_repair")
 
@@ -27,7 +32,6 @@ class VideoRepairStage:
         
         cfg = config["video_repair"]
         self.repaired_path = Path(cfg["repaired_video_path"])
-        self.cfr_path = Path(cfg["cfr_video_path"])
         self.scene_csv_path = Path(cfg["scene_csv_path"])
         self.threshold = float(cfg["scene_threshold"])
         self.min_scene_len = int(cfg["min_scene_len"])
@@ -35,12 +39,11 @@ class VideoRepairStage:
         
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.repaired_path.parent.mkdir(parents=True, exist_ok=True)
-        self.cfr_path.parent.mkdir(parents=True, exist_ok=True)
         self.scene_csv_path.parent.mkdir(parents=True, exist_ok=True)
 
     def run(self, force: bool = False) -> None:
         """Run the complete video repair and scene detection stage."""
-        logger.info("Starting Stage 1: Video Repair & CFR Conversion")
+        logger.info("Starting Stage 1: Video Repair")
         
         # 1. FFmpeg Container Repair
         if not self.repaired_path.exists() or force:
@@ -49,8 +52,9 @@ class VideoRepairStage:
                 "ffmpeg", "-y",
                 "-err_detect", "ignore_err",
                 "-i", str(self.video_path),
+                "-map", "0:v",
+                "-map", "0:a?",
                 "-c", "copy",
-                "-map", "0",
                 str(self.repaired_path)
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
@@ -61,31 +65,10 @@ class VideoRepairStage:
         else:
             logger.info(f"Checkpoint found: Repaired video exists at {self.repaired_path}. Skipping repair.")
 
-        # 2. CFR Conversion
-        if not self.cfr_path.exists() or force:
-            logger.info(f"Converting video to Constant Frame Rate ({self.fps} FPS): {self.repaired_path} -> {self.cfr_path}")
-            cmd = [
-                "ffmpeg", "-y",
-                "-i", str(self.repaired_path),
-                "-filter:v", f"fps=fps={self.fps}",
-                "-c:v", "libx264",
-                "-crf", "18",
-                "-c:a", "aac",
-                "-vsync", "cfr",
-                str(self.cfr_path)
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                logger.error(f"CFR conversion failed:\n{result.stderr}")
-                raise RuntimeError("Failed to convert video to constant frame rate.")
-            logger.info("Constant frame rate conversion complete.")
-        else:
-            logger.info(f"Checkpoint found: CFR video exists at {self.cfr_path}. Skipping conversion.")
-
-        # 3. PySceneDetect Boundary Detection
+        # 2. PySceneDetect Boundary Detection
         if not self.scene_csv_path.exists() or force:
-            logger.info(f"Detecting scenes in CFR video using threshold={self.threshold}")
-            video = open_video(str(self.cfr_path))
+            logger.info(f"Detecting scenes in repaired video using threshold={self.threshold}")
+            video = open_video(str(self.repaired_path))
             scene_manager = SceneManager()
             scene_manager.add_detector(
                 ContentDetector(threshold=self.threshold, min_scene_len=self.min_scene_len)
