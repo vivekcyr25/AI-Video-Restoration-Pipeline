@@ -82,6 +82,7 @@ class ReferenceRestorer:
         self.restored_dir.mkdir(parents=True, exist_ok=True)
         self.face_cache = self._load_face_cache()
         self.esrgan_engine = self._init_realesrgan()
+        self.album_images_cache = {}
 
     def _load_face_cache(self) -> dict:
         cache_path = self.models_dir / "face_cache.json"
@@ -212,10 +213,15 @@ class ReferenceRestorer:
         a_cache = self.face_cache.get(a_name)
         
         if f_cache is None or a_cache is None:
-            logger.info(f"Skipping face-guided warp for {f_name}: face missing in frame or album.")
+            logger.debug(f"Skipping face-guided warp for {f_name}: face missing in frame or album.")
             return frame_bg
             
-        album = cv2.imread(str(self.albums_dir / a_name))
+        if a_name not in self.album_images_cache:
+            album = cv2.imread(str(self.albums_dir / a_name))
+            self.album_images_cache[a_name] = album
+        else:
+            album = self.album_images_cache[a_name]
+            
         if album is None:
             return frame_bg
             
@@ -251,7 +257,12 @@ class ReferenceRestorer:
         output = (output * (1.0 - mask_lips_3c) + warped_album * mask_lips_3c).astype(np.uint8)
         
         # 2. Restore Skin (color transfer + guided filter smoothing)
-        skin_color = color_transfer(warped_album, output)
+        # Convert BGR inputs to RGB since color_transfer assumes RGB color space
+        warped_album_rgb = cv2.cvtColor(warped_album, cv2.COLOR_BGR2RGB)
+        output_rgb = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
+        skin_color_rgb = color_transfer(warped_album_rgb, output_rgb)
+        # Convert color transfer output back to BGR
+        skin_color = cv2.cvtColor(skin_color_rgb, cv2.COLOR_RGB2BGR)
         guidance = cv2.cvtColor(skin_color, cv2.COLOR_BGR2GRAY)
         smoothed_skin = guided_filter(guidance, skin_color, r=8, eps=0.01)
         output = (output * (1.0 - mask_skin_3c) + smoothed_skin * mask_skin_3c).astype(np.uint8)
@@ -261,20 +272,20 @@ class ReferenceRestorer:
         album_smooth = cv2.GaussianBlur(album_gray, (0, 0), 2.0)
         
         # Check/make safe before cv2.subtract
-        logger.info(f"Before cv2.subtract: album_gray.shape={album_gray.shape}, album_smooth.shape={album_smooth.shape}")
+        logger.debug(f"Before cv2.subtract: album_gray.shape={album_gray.shape}, album_smooth.shape={album_smooth.shape}")
         album_gray, album_smooth = _make_ops_safe(album_gray, album_smooth)
         album_detail = cv2.subtract(album_gray, album_smooth)
         album_detail_3c = np.expand_dims(album_detail, axis=2)
         
         # Check/make safe before cv2.add
-        logger.info(f"Before cv2.add: output.shape={output.shape}, album_detail_3c.shape={album_detail_3c.shape}")
+        logger.debug(f"Before cv2.add: output.shape={output.shape}, album_detail_3c.shape={album_detail_3c.shape}")
         output, album_detail_3c = _make_ops_safe(output, album_detail_3c)
         hair_enhanced = cv2.add(output, album_detail_3c)
         output = (output * (1.0 - mask_hair_3c) + hair_enhanced * mask_hair_3c).astype(np.uint8)
         
         # 4. Restore Jewellery (unsharp detail transfer)
         # Check/make safe before cv2.addWeighted
-        logger.info(f"Before cv2.addWeighted: output.shape={output.shape}, warped_album.shape={warped_album.shape}")
+        logger.debug(f"Before cv2.addWeighted: output.shape={output.shape}, warped_album.shape={warped_album.shape}")
         output, warped_album = _make_ops_safe(output, warped_album)
         jewel_enhanced = cv2.addWeighted(output, 1.0, warped_album, 0.4, 0)
         output = (output * (1.0 - mask_jewel_3c) + jewel_enhanced * mask_jewel_3c).astype(np.uint8)

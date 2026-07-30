@@ -7,6 +7,9 @@ global:
   albums_dir: "Albums_sample"
   models_dir: "Models"
   output_dir: "Output"
+  cudnn_benchmark: true           # Enable cudnn benchmark for auto-tuning
+  allow_tf32: true                # Enable TF32 tensor cores optimization
+
 
 video_repair:
   repaired_video_path: "Output/repaired_video.mp4"
@@ -60,3 +63,5 @@ video_propagation:
   detail_strength: 0.35
   flicker_removal: true
   temporal_window_size: 5
+  batch_size: 16                  # Batched optical flow calculation
+  num_flow_updates: 8             # Number of RAFT updates (lower is faster)

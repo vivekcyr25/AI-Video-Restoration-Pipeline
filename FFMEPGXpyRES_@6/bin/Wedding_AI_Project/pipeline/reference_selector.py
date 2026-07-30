@@ -68,9 +68,8 @@ class ReferenceSelectorStage:
             logger.warning(f"Error loading face metadata for {prefix}: {e}")
             return {}
 
-    def _preprocess_lpips(self, img_path: Path):
+    def _preprocess_lpips_from_img(self, img: np.ndarray):
         import torch
-        img = cv2.imread(str(img_path))
         if img is None:
             return torch.zeros((1, 3, 224, 224), dtype=torch.float32)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -78,6 +77,10 @@ class ReferenceSelectorStage:
         # Scale to [-1, 1]
         tensor = torch.from_numpy(img).permute(2, 0, 1).float() / 127.5 - 1.0
         return tensor.unsqueeze(0)
+
+    def _preprocess_lpips(self, img_path: Path):
+        img = cv2.imread(str(img_path))
+        return self._preprocess_lpips_from_img(img)
 
     def run(self, force: bool = False) -> None:
         import torch
@@ -134,6 +137,24 @@ class ReferenceSelectorStage:
         if use_fp16:
             lpips_net = lpips_net.half()
 
+        # Precompute album histograms and VGG features to prevent redundant disk I/O and model inferences
+        logger.info("Precomputing histograms and VGG perceptual features for all album images...")
+        album_hists = {}
+        album_vgg_feats = {}
+        for a_name in album_names:
+            a_path = self.albums_dir / a_name
+            a_img = cv2.imread(str(a_path))
+            if a_img is not None:
+                album_hists[a_name] = compute_histogram(a_img)
+                a_tensor = self._preprocess_lpips_from_img(a_img).to(self.device)
+                if use_fp16:
+                    a_tensor = a_tensor.half()
+                with torch.inference_mode():
+                    album_vgg_feats[a_name] = lpips_net(a_tensor)
+            else:
+                album_hists[a_name] = None
+                album_vgg_feats[a_name] = None
+
         match_rows = []
 
         for f_idx, f_name in enumerate(tqdm(frame_names, desc="Selecting Reference Photos")):
@@ -142,7 +163,9 @@ class ReferenceSelectorStage:
             f_face = frame_faces.get(f_name)
             
             f_img = cv2.imread(str(self.frames_dir / f_name))
-            f_hist = compute_histogram(f_img) if f_img is not None else None
+            if f_img is None:
+                continue
+            f_hist = compute_histogram(f_img)
             
             # Step A: Coarse search
             clip_sims = np.dot(album_clip, f_clip_emb)
@@ -178,7 +201,7 @@ class ReferenceSelectorStage:
             top_10_indices = np.argsort(coarse_scores)[::-1][:10]
             
             best_candidates = []
-            f_tensor = self._preprocess_lpips(self.frames_dir / f_name).to(self.device)
+            f_tensor = self._preprocess_lpips_from_img(f_img).to(self.device)
             if use_fp16:
                 f_tensor = f_tensor.half()
                 
@@ -188,22 +211,19 @@ class ReferenceSelectorStage:
             for a_idx in top_10_indices:
                 a_name = album_names[a_idx]
                 
-                a_img = cv2.imread(str(self.albums_dir / a_name))
-                a_hist = compute_histogram(a_img) if a_img is not None else None
+                a_hist = album_hists.get(a_name)
                 color_sim = histogram_similarity(f_hist, a_hist) if (f_hist is not None and a_hist is not None) else 0.0
                 
-                a_tensor = self._preprocess_lpips(self.albums_dir / a_name).to(self.device)
-                if use_fp16:
-                    a_tensor = a_tensor.half()
-                    
-                with torch.inference_mode():
-                    a_feats = lpips_net(a_tensor)
-                    
-                lpips_dist = 0.0
-                for feat_f, feat_a in zip(f_feats, a_feats):
-                    diff = (feat_f - feat_a) ** 2
-                    lpips_dist += float(diff.mean().cpu().item())
-                lpips_sim = max(0.0, 1.0 - (lpips_dist * 2.0))
+                a_feats = album_vgg_feats.get(a_name)
+                
+                if f_feats is not None and a_feats is not None:
+                    lpips_dist = 0.0
+                    for feat_f, feat_a in zip(f_feats, a_feats):
+                        diff = (feat_f - feat_a) ** 2
+                        lpips_dist += float(diff.mean().cpu().item())
+                    lpips_sim = max(0.0, 1.0 - (lpips_dist * 2.0))
+                else:
+                    lpips_sim = 0.0
                 
                 eff_w_face = w_face if has_face_pair[a_idx] else 0.0
                 w_other = w_clip + w_scene + self.weights["color"] + self.weights["lpips"]

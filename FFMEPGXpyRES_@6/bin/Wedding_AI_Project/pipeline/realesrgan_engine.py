@@ -182,9 +182,10 @@ class RealESRGANEngine:
         Handles FP16, tile blending, and automatic CPU fallback on OOM.
         """
         import torch
-        h, w, c = img.shape
+        # Convert BGR to RGB since the RRDBNet model expects RGB order
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # Normalize and convert to torch float tensor
-        img_t = torch.from_numpy(img).permute(2, 0, 1).float() / 255.0
+        img_t = torch.from_numpy(img_rgb).permute(2, 0, 1).float() / 255.0
         img_t = img_t.unsqueeze(0).to(self.device)
         
         use_half = (self.device == "cuda")
@@ -200,7 +201,9 @@ class RealESRGANEngine:
                 torch.cuda.empty_cache()
                 # Run on CPU in float32
                 self.model = self.model.float().to("cpu")
-                img_t = img_t.float().to("cpu")
+                # Reload RGB input onto CPU
+                img_t = torch.from_numpy(img_rgb).permute(2, 0, 1).float() / 255.0
+                img_t = img_t.unsqueeze(0).to("cpu")
                 with torch.inference_mode():
                     output = self._tile_inference(img_t, tile_size=128, tile_pad=10, outscale=outscale)
                 # Restore GPU state
@@ -211,6 +214,7 @@ class RealESRGANEngine:
         # Convert back to numpy BGR image
         output_np = output.squeeze(0).permute(1, 2, 0).cpu().numpy()
         output_np = np.clip(output_np * 255.0, 0, 255).astype(np.uint8)
+        output_np = cv2.cvtColor(output_np, cv2.COLOR_RGB2BGR)
         
         # Resize to desired outscale if model scale (4x) differs from target
         if outscale != 4.0:
