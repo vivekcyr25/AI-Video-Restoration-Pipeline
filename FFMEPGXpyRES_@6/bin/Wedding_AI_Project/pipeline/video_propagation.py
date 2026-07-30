@@ -32,16 +32,27 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("video_propagation")
 
 
+_grid_cache = {}
+
 def warp_flow(img, flow):
     """Warp image tensor of shape (B, C, H, W) using flow tensor of shape (B, 2, H, W) via grid_sample."""
     import torch
     B, C, H, W = img.size()
-    yy, xx = torch.meshgrid(
-        torch.arange(0, H, device=img.device, dtype=torch.float32),
-        torch.arange(0, W, device=img.device, dtype=torch.float32),
-        indexing="ij"
-    )
-    grid = torch.stack((xx, yy), dim=0).unsqueeze(0).repeat(B, 1, 1, 1)
+    grid_key = (B, H, W, img.device, img.dtype)
+    global _grid_cache
+    if grid_key in _grid_cache:
+        grid = _grid_cache[grid_key]
+    else:
+        yy, xx = torch.meshgrid(
+            torch.arange(0, H, device=img.device, dtype=torch.float32),
+            torch.arange(0, W, device=img.device, dtype=torch.float32),
+            indexing="ij"
+        )
+        grid = torch.stack((xx, yy), dim=0).unsqueeze(0).repeat(B, 1, 1, 1)
+        if img.dtype == torch.float16:
+            grid = grid.half()
+        _grid_cache[grid_key] = grid
+        
     vgrid = grid + flow
     vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(1, W - 1) - 1.0
     vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(1, H - 1) - 1.0
@@ -82,6 +93,11 @@ class VideoPropagationStage:
         self.conf_threshold = 0.55  # Confidence drop threshold
         
         self.output_silent.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Read optimization settings with defaults
+        self.batch_size = int(cfg.get("batch_size", 16))
+        self.num_flow_updates = int(cfg.get("num_flow_updates", 8))
+        logger.info(f"Using batch_size={self.batch_size}, num_flow_updates={self.num_flow_updates} for Video Propagation")
         
         # Initialize restorer dependency for adaptive keyframe generation
         self.restorer = ReferenceRestorer(config)
@@ -126,9 +142,20 @@ class VideoPropagationStage:
         img1_pad, pad_h, pad_w = pad_to_multiple(img1)
         img2_pad, _, _ = pad_to_multiple(img2)
         with torch.inference_mode():
-            list_of_flows = self.raft_model(img1_pad, img2_pad, num_flow_updates=12)
+            list_of_flows = self.raft_model(img1_pad, img2_pad, num_flow_updates=self.num_flow_updates)
             flow = list_of_flows[-1]
         h, w = img1.shape[-2:]
+        flow = flow[..., :h, :w]
+        return flow
+
+    def _compute_flow_batch(self, img1_batch, img2_batch):
+        import torch
+        img1_pad, pad_h, pad_w = pad_to_multiple(img1_batch)
+        img2_pad, _, _ = pad_to_multiple(img2_batch)
+        with torch.inference_mode():
+            list_of_flows = self.raft_model(img1_pad, img2_pad, num_flow_updates=self.num_flow_updates)
+            flow = list_of_flows[-1]
+        h, w = img1_batch.shape[-2:]
         flow = flow[..., :h, :w]
         return flow
 
@@ -215,97 +242,146 @@ class VideoPropagationStage:
                         break
                     original_frames_in_scene.append((f_idx, frame_bgr))
                 
-                scene_reconstructed = []
+                scene_reconstructed = [None] * len(original_frames_in_scene)
                 prev_delta_warped = None
                 
-                for f_idx, frame_bgr in original_frames_in_scene:
+                i = 0
+                while i < len(original_frames_in_scene):
+                    f_idx, frame_bgr = original_frames_in_scene[i]
+                    
                     if f_idx == midpoint:
-                        scene_reconstructed.append(ref_restored)
+                        scene_reconstructed[i] = ref_restored
+                        i += 1
                         continue
                         
-                    frame_upscaled = cv2.resize(frame_bgr, (w_out, h_out), interpolation=cv2.INTER_CUBIC)
-                    tgt_img_tensor = torch.from_numpy(frame_bgr).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                    if self.device == "cuda":
-                        tgt_img_tensor = tgt_img_tensor.half()
+                    # Build batch up to batch_size, stopping if we hit the midpoint (which is already set)
+                    batch_frames = []
+                    batch_indices = []
+                    for k in range(i, min(i + self.batch_size, len(original_frames_in_scene))):
+                        fk, fb = original_frames_in_scene[k]
+                        if fk == midpoint:
+                            break
+                        batch_frames.append(fb)
+                        batch_indices.append(k)
                         
-                    # 1. Compute flow
-                    flow = self._compute_flow(tgt_img_tensor, ref_img_tensor)
-                    flow_upscaled = torch.nn.functional.interpolate(
-                        flow, size=(h_out, w_out), mode="bilinear", align_corners=True
-                    )
-                    flow_upscaled = flow_upscaled * (w_out / frame_bgr.shape[1])
-                    
-                    # 2. Warp delta
-                    delta_warped = warp_flow(delta_tensor, flow_upscaled)
-                    detail_warped = warp_flow(detail_tensor, flow_upscaled)
-                    
-                    # 3. Compute residual and confidence
-                    ref_orig_tensor_up = torch.from_numpy(ref_orig_upscaled).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                    ref_warped = warp_flow(ref_orig_tensor_up, flow_upscaled)
-                    tgt_upscaled_tensor = torch.from_numpy(frame_upscaled).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                    
-                    residual = torch.abs(tgt_upscaled_tensor - ref_warped).mean(dim=1, keepdim=True)
-                    sigma = 35.0
-                    conf_mask = torch.exp(-residual / (2.0 * sigma**2))
-                    mean_conf = float(conf_mask.mean().cpu().item())
-                    
-                    # 4. Adaptive Keyframe Restoration Trigger
-                    if mean_conf < self.conf_threshold:
-                        logger.info(f"Scene {scene['scene_idx']} confidence dropped to {mean_conf:.3f} at frame {f_idx}. Restoring new local anchor.")
+                    if not batch_frames:
+                        i += 1
+                        continue
                         
-                        # Generate restored frame on-the-fly for new anchor
-                        restored_anchor = self.restorer._enhance_background(frame_bgr)
-                        
-                        # Run face restoration dynamically if face detected
-                        restored_anchor = self.restorer._restore_face_regions(
-                            restored_anchor,
-                            f"scene_{scene['scene_idx']:04d}.jpg",  # Reuse landmarks mappings as reference
-                            a_name,
-                            scale=2.0
-                        )
-                        
-                        # Set new anchor variables
-                        ref_img = frame_bgr.copy()
-                        ref_restored = restored_anchor.copy()
-                        ref_orig_upscaled = cv2.resize(ref_img, (w_out, h_out), interpolation=cv2.INTER_CUBIC)
-                        delta_bgr = ref_restored.astype(np.float32) - ref_orig_upscaled.astype(np.float32)
-                        
-                        ref_gray = cv2.cvtColor(ref_restored, cv2.COLOR_BGR2GRAY)
-                        ref_smooth = cv2.GaussianBlur(ref_gray, (0, 0), 2.0)
-                        ref_detail = cv2.subtract(ref_gray, ref_smooth).astype(np.float32)
-                        
-                        ref_img_tensor = torch.from_numpy(ref_img).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
+                    # Precompute batch flow
+                    tgt_tensors = []
+                    ref_tensors = []
+                    for fb in batch_frames:
+                        tgt_t = torch.from_numpy(fb).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
                         if self.device == "cuda":
-                            ref_img_tensor = ref_img_tensor.half()
+                            tgt_t = tgt_t.half()
+                        tgt_tensors.append(tgt_t)
+                        ref_tensors.append(ref_img_tensor)
+                        
+                    tgt_batch = torch.cat(tgt_tensors, dim=0)
+                    ref_batch = torch.cat(ref_tensors, dim=0)
+                    
+                    flows = self._compute_flow_batch(tgt_batch, ref_batch)
+                    
+                    # Sequentially process flows to handle temporal dependency and adaptive keyframe insertions
+                    conf_dropped = False
+                    for idx_in_batch, k in enumerate(batch_indices):
+                        fk, fb = original_frames_in_scene[k]
+                        flow_k = flows[idx_in_batch:idx_in_batch+1]
+                        
+                        flow_upscaled = torch.nn.functional.interpolate(
+                            flow_k, size=(h_out, w_out), mode="bilinear", align_corners=True
+                        )
+                        flow_upscaled = flow_upscaled * (w_out / fb.shape[1])
+                        
+                        # 2. Warp delta
+                        delta_warped = warp_flow(delta_tensor, flow_upscaled)
+                        detail_warped = warp_flow(detail_tensor, flow_upscaled)
+                        
+                        # 3. Compute residual and confidence
+                        ref_orig_tensor_up = torch.from_numpy(ref_orig_upscaled).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
+                        if self.device == "cuda":
+                            ref_orig_tensor_up = ref_orig_tensor_up.half()
+                        ref_warped = warp_flow(ref_orig_tensor_up, flow_upscaled)
+                        
+                        frame_upscaled = cv2.resize(fb, (w_out, h_out), interpolation=cv2.INTER_CUBIC)
+                        tgt_upscaled_tensor = torch.from_numpy(frame_upscaled).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
+                        if self.device == "cuda":
+                            tgt_upscaled_tensor = tgt_upscaled_tensor.half()
                             
-                        delta_tensor = torch.from_numpy(delta_bgr).permute(2, 0, 1).unsqueeze(0).to(self.device)
-                        detail_tensor = torch.from_numpy(ref_detail).unsqueeze(0).unsqueeze(0).to(self.device)
+                        residual = torch.abs(tgt_upscaled_tensor - ref_warped).mean(dim=1, keepdim=True)
+                        sigma = 35.0
+                        conf_mask = torch.exp(-residual / (2.0 * sigma**2))
+                        mean_conf = float(conf_mask.mean().cpu().item())
                         
-                        # Reset temporal flow state
-                        prev_delta_warped = None
-                        scene_reconstructed.append(ref_restored)
-                        continue
+                        # 4. Adaptive Keyframe Restoration Trigger
+                        if mean_conf < self.conf_threshold:
+                            logger.info(f"Scene {scene['scene_idx']} confidence dropped to {mean_conf:.3f} at frame {fk}. Restoring new local anchor.")
+                            
+                            # Generate restored frame on-the-fly for new anchor
+                            restored_anchor = self.restorer._enhance_background(fb)
+                            
+                            # Run face restoration dynamically if face detected
+                            restored_anchor = self.restorer._restore_face_regions(
+                                restored_anchor,
+                                f"scene_{scene['scene_idx']:04d}.jpg",
+                                a_name,
+                                scale=2.0
+                            )
+                            
+                            # Set new anchor variables
+                            ref_img = fb.copy()
+                            ref_restored = restored_anchor.copy()
+                            ref_orig_upscaled = cv2.resize(ref_img, (w_out, h_out), interpolation=cv2.INTER_CUBIC)
+                            delta_bgr = ref_restored.astype(np.float32) - ref_orig_upscaled.astype(np.float32)
+                            
+                            ref_gray = cv2.cvtColor(ref_restored, cv2.COLOR_BGR2GRAY)
+                            ref_smooth = cv2.GaussianBlur(ref_gray, (0, 0), 2.0)
+                            ref_detail = cv2.subtract(ref_gray, ref_smooth).astype(np.float32)
+                            
+                            ref_img_tensor = torch.from_numpy(ref_img).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
+                            if self.device == "cuda":
+                                ref_img_tensor = ref_img_tensor.half()
+                                
+                            delta_tensor = torch.from_numpy(delta_bgr).permute(2, 0, 1).unsqueeze(0).to(self.device)
+                            detail_tensor = torch.from_numpy(ref_detail).unsqueeze(0).unsqueeze(0).to(self.device)
+                            
+                            # Reset temporal flow state
+                            prev_delta_warped = None
+                            scene_reconstructed[k] = ref_restored
+                            
+                            # Discard subsequent precomputed flows in the batch & slide loop to k + 1
+                            i = k + 1
+                            conf_dropped = True
+                            break
+                            
+                        # Apply standard flow details
+                        if prev_delta_warped is not None:
+                            delta_warped = delta_warped * self.temporal_strength + prev_delta_warped * (1.0 - self.temporal_strength)
+                        prev_delta_warped = delta_warped.clone()
                         
-                    # Apply standard flow details
-                    if prev_delta_warped is not None:
-                        delta_warped = delta_warped * self.temporal_strength + prev_delta_warped * (1.0 - self.temporal_strength)
-                    prev_delta_warped = delta_warped.clone()
-                    
-                    restored_tensor = tgt_upscaled_tensor + delta_warped * conf_mask * self.strength
-                    detail_enhanced = detail_warped * conf_mask * self.detail_strength
-                    restored_tensor = restored_tensor + detail_enhanced
-                    
-                    restored_np = restored_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
-                    restored_np = np.clip(restored_np, 0, 255).astype(np.uint8)
-                    scene_reconstructed.append(restored_np)
+                        restored_tensor = tgt_upscaled_tensor + delta_warped * conf_mask * self.strength
+                        detail_enhanced = detail_warped * conf_mask * self.detail_strength
+                        restored_tensor = restored_tensor + detail_enhanced
+                        
+                        restored_np = restored_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
+                        restored_np = np.clip(restored_np, 0, 255).astype(np.uint8)
+                        scene_reconstructed[k] = restored_np
+                        
+                    if not conf_dropped:
+                        # Advance sequentially by the size of processed batch
+                        i += len(batch_frames)
+                
+                # Filter out any None frames just in case of decode/trigger anomalies
+                scene_reconstructed_clean = [f for f in scene_reconstructed if f is not None]
                 
                 # Apply Global Lab Flicker Removal
-                if self.flicker_removal and len(scene_reconstructed) > 2:
-                    scene_rgb = [cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in scene_reconstructed]
+                if self.flicker_removal and len(scene_reconstructed_clean) > 2:
+                    scene_rgb = [cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in scene_reconstructed_clean]
                     scene_rgb_fixed = remove_flicker_global(scene_rgb, window_size=5)
-                    scene_reconstructed = [cv2.cvtColor(f, cv2.COLOR_RGB2BGR) for f in scene_rgb_fixed]
+                    scene_reconstructed_clean = [cv2.cvtColor(f, cv2.COLOR_RGB2BGR) for f in scene_rgb_fixed]
                     
-                for frame in scene_reconstructed:
+                for frame in scene_reconstructed_clean:
                     ffmpeg_proc.stdin.write(frame.tobytes())
                     
         finally:

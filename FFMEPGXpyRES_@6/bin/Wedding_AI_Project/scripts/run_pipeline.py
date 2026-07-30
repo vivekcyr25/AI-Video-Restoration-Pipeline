@@ -178,7 +178,22 @@ def main() -> None:
     if args.device is not None:
         config["global"]["device"] = args.device
 
+    # Configure PyTorch global performance flags
+    if config["global"].get("device") == "cuda":
+        try:
+            import torch
+            if config["global"].get("cudnn_benchmark", False):
+                torch.backends.cudnn.benchmark = True
+                logger.info("Enabled torch.backends.cudnn.benchmark")
+            if config["global"].get("allow_tf32", False):
+                torch.backends.cuda.matmul.allow_tf32 = True
+                torch.backends.cudnn.allow_tf32 = True
+                logger.info("Enabled TF32 execution (allow_tf32)")
+        except ImportError:
+            pass
+
     stage = args.stage
+
     logger.info(f"Running pipeline stage: {stage} (force={args.force})")
     
     try:

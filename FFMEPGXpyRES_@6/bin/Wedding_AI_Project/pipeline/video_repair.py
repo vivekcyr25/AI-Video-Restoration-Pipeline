@@ -81,8 +81,8 @@ class VideoRepairStage:
                 writer = csv.writer(f)
                 writer.writerow(["Scene Number", "Start Frame", "End Frame", "Start Time", "End Time", "Length (frames)"])
                 for i, scene in enumerate(scene_list):
-                    start_frame = scene[0].get_frames()
-                    end_frame = scene[1].get_frames()
+                    start_frame = scene[0].frame_num
+                    end_frame = scene[1].frame_num
                     start_time = scene[0].get_timecode()
                     end_time = scene[1].get_timecode()
                     length = end_frame - start_frame
