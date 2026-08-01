@@ -1,0 +1,4 @@
+# Exclude third-party FFmpeg HTML documentation and preview pages from language statistics
+FFMEPGXpyRES_@6/doc/**/*.html linguist-documentation
+preview/**/*.html linguist-documentation
+*.html linguist-documentation
