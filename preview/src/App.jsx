@@ -1,73 +1,151 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import SplashIntro from './components/SplashIntro'
 import ShaderBackground from './components/ShaderBackground'
-import IntroSequence from './components/IntroSequence'
-import ScrollWorkflow from './components/ScrollWorkflow'
-import FinalReveal from './components/FinalReveal'
-import StagePanel from './components/StagePanel'
 import BackgroundAudio from './components/BackgroundAudio'
-import { useGlobalScroll } from './hooks/useScroll'
+import Navbar from './components/Navbar'
+import HeroSection from './components/HeroSection'
+import BeforeAfterSection from './components/BeforeAfterSection'
+import MetricsSection from './components/MetricsSection'
+import PipelineWorkflow from './components/PipelineWorkflow'
+import AlbumMatchingSection from './components/AlbumMatchingSection'
+import RestorationShowcase from './components/RestorationShowcase'
+import TerminalSection from './components/TerminalSection'
+import ArchitectureDiagram from './components/ArchitectureDiagram'
+import TechStackSection from './components/TechStackSection'
+import ConstraintsSection from './components/ConstraintsSection'
+import TestingSection from './components/TestingSection'
+import ProjectStory from './components/ProjectStory'
+import ProjectTimeline from './components/ProjectTimeline'
+import GithubCTA from './components/GithubCTA'
+import Footer from './components/Footer'
+import StageModal from './components/StageModal'
 
 export default function App() {
-  const [activeStage, setActiveStage] = useState(null)
-  const [introProgress, setIntroProgress] = useState(0)
-  const { scrollProgress } = useGlobalScroll()
+  const [activeStageId, setActiveStageId] = useState(null)
+  const [introComplete, setIntroComplete] = useState(false)
+  const [siteVisible, setSiteVisible] = useState(false)
 
-  const shaderProgress = Math.min(1, introProgress * 0.6 + scrollProgress * 0.5)
+  const handleIntroDone = () => {
+    setIntroComplete(true)
+    setTimeout(() => setSiteVisible(true), 100)
+  }
 
-  const navOpaque = scrollProgress > 0.02
+  // Auto-attach scroll stretch-reveal system to all text elements & cards
+  useEffect(() => {
+    if (!siteVisible) return
+
+    // Find all key text headings, paragraphs, labels, and card containers
+    const elements = document.querySelectorAll(
+      'section h1, section h2, section h3, section p, section .grid > div, footer'
+    )
+
+    elements.forEach((el, index) => {
+      if (el.tagName.startsWith('H') || el.tagName === 'P') {
+        el.classList.add('stretch-reveal')
+      } else {
+        el.classList.add('stretch-card')
+      }
+      // Add subtle stagger delay
+      const delay = (index % 6) * 0.06
+      el.style.transitionDelay = `${delay}s`
+    })
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed')
+          }
+        })
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px',
+      }
+    )
+
+    elements.forEach((el) => observer.observe(el))
+
+    return () => observer.disconnect()
+  }, [siteVisible])
 
   return (
-    <div className="relative">
-      <ShaderBackground progress={shaderProgress} />
-      <BackgroundAudio />
+    <>
+      {/* ── Cinematic Splash Intro ── */}
+      {!introComplete && <SplashIntro onDone={handleIntroDone} />}
 
-      {/* Nav — fades in after first scroll */}
-      <nav
-        className={`fixed top-0 inset-x-0 z-40 transition-all duration-500 ${
-          navOpaque ? 'glass border-b border-white/[0.06]' : 'bg-transparent border-transparent'
-        }`}
+      {/* ── Main Site (fades in after intro) ── */}
+      <div
+        className="relative min-h-screen bg-[#040407] text-slate-100"
+        style={{
+          opacity: siteVisible ? 1 : 0,
+          transition: 'opacity 0.8s ease',
+          pointerEvents: siteVisible ? 'auto' : 'none',
+        }}
       >
-        <div className="max-w-6xl mx-auto px-5 h-12 flex items-center justify-between">
-          <span className="text-sm font-semibold tracking-tight text-white/80">
-            AI Video Restoration
-          </span>
-          <div className="flex items-center gap-4 text-xs text-white/45">
-            <a
-              href="https://github.com/vivekcyr25/AI-Video-Restoration-Pipeline"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-white transition-colors"
-            >
-              GitHub
-            </a>
-          </div>
-        </div>
-      </nav>
+        {/* Background WebGL Shader Canvas */}
+        <ShaderBackground progress={0.7} />
 
-      {/* Act 1: Apple-style problem → solution intro */}
-      <IntroSequence onProgress={setIntroProgress} />
+        {/* Ambient Audio Controller */}
+        <BackgroundAudio />
 
-      {/* Act 2: Scroll-driven connected workflow */}
-      <div className="relative z-10 bg-[#050508]">
-        <ScrollWorkflow onStageClick={setActiveStage} />
+        {/* Global Navbar */}
+        <Navbar onOpenStage={(id) => setActiveStageId(id)} />
+
+        {/* 1. Cinematic Hero Section */}
+        <HeroSection />
+
+        {/* 2. Before / After Interactive Slider */}
+        <BeforeAfterSection />
+
+        {/* 3. Project Impact / Real Number Metrics */}
+        <MetricsSection />
+
+        {/* 4. Interactive 8-Stage Pipeline Workflow */}
+        <PipelineWorkflow onStageClick={(id) => setActiveStageId(id)} />
+
+        {/* 5. Album ↔ Video Semantic Matching */}
+        <AlbumMatchingSection />
+
+        {/* 6. AI Restoration Detail Recovery Breakdown */}
+        <RestorationShowcase />
+
+        {/* 7. Engineering Developer Terminal */}
+        <TerminalSection />
+
+        {/* 8. System Architecture Diagram */}
+        <ArchitectureDiagram />
+
+        {/* 9. Verified Tech Stack */}
+        <TechStackSection />
+
+        {/* 10. Engineering Under Constraints */}
+        <ConstraintsSection />
+
+        {/* 11. Built To Be Verified: Automated Testing */}
+        <TestingSection />
+
+        {/* 12. Project Narrative: Why I Built This */}
+        <ProjectStory />
+
+        {/* 13. Pipeline Evolution Timeline */}
+        <ProjectTimeline />
+
+        {/* 14. Final Call to Action */}
+        <GithubCTA />
+
+        {/* 15. Minimalist Engineering Footer */}
+        <Footer />
+
+        {/* Deep-Dive Stage Inspector Modal */}
+        {activeStageId && (
+          <StageModal
+            activeStageId={activeStageId}
+            onClose={() => setActiveStageId(null)}
+            onSelectStage={(id) => setActiveStageId(id)}
+          />
+        )}
       </div>
-
-      {/* Act 3: Final reveal */}
-      <FinalReveal />
-
-      <footer className="text-center py-10 px-4 text-xs text-white/25 border-t border-white/[0.04] space-y-1.5">
-        <p>MIT License · Preserving irreplaceable media assets through AI</p>
-        <p className="text-white/35">Mastered and engineered by Vivek Sharma</p>
-        <p className="text-white/20 text-[10px]">Music: Galaxy&apos;s Endless Expanse · FesliyanStudios.com</p>
-      </footer>
-
-      {activeStage && (
-        <StagePanel
-          activeStage={activeStage}
-          onClose={() => setActiveStage(null)}
-          onStageSelect={setActiveStage}
-        />
-      )}
-    </div>
+    </>
   )
 }

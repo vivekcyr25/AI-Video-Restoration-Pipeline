@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,54 +9,223 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: #040407;
+    color: #f8fafc;
   }
 
   body {
-    @apply bg-[#050508] text-white overflow-x-hidden;
+    background-color: #040407;
+    color: #f8fafc;
+    overflow-x: hidden;
+    font-family: 'Barlow Condensed', 'Barlow Semi Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: 0.01em;
   }
 
+  /* Text selection - can't use @apply with selection: variant in CSS files */
   ::selection {
-    @apply bg-cyber-blue/40 text-white;
+    background-color: rgba(0, 240, 255, 0.2);
+    color: #00f0ff;
   }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/[0.04] backdrop-blur-2xl border border-white/[0.07];
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08];
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   }
 
   .glass-hover {
-    @apply transition-all duration-300 hover:bg-white/[0.07] hover:border-white/[0.12];
+    @apply transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.16];
   }
 
   .vintage-media {
-    filter: sepia(0.4) contrast(0.78) brightness(0.82) saturate(0.55);
+    filter: sepia(0.35) contrast(0.85) brightness(0.85) saturate(0.65) hue-rotate(-5deg);
   }
 
   .restored-media {
-    filter: contrast(1.08) brightness(1.03) saturate(1.15);
+    filter: contrast(1.12) brightness(1.04) saturate(1.18);
+  }
+
+  .film-scanlines {
+    background:
+      linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+      linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 3px, 6px 100%;
+  }
+
+  .tech-grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .tech-crosshair {
+    position: relative;
+  }
+  .tech-crosshair::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    border-top: 1px solid rgba(0, 240, 255, 0.6);
+    border-left: 1px solid rgba(0, 240, 255, 0.6);
+  }
+  .tech-crosshair::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.6);
+    border-right: 1px solid rgba(0, 240, 255, 0.6);
   }
 }
 
+/* Film grain animation */
 @keyframes grain {
   0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-1%, 1%); }
-  50% { transform: translate(1%, -1%); }
-  75% { transform: translate(-1%, -1%); }
+  20% { transform: translate(-1%, 1%); }
+  40% { transform: translate(1%, -1%); }
+  60% { transform: translate(-1%, -1%); }
+  80% { transform: translate(1%, 1%); }
 }
 
 .animate-grain {
-  animation: grain 0.4s steps(2) infinite;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 128px 128px;
+  animation: grain 0.3s steps(2) infinite;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
 }
 
-@keyframes shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+/* Glow shadow utilities */
+.shadow-cyan-glow {
+  box-shadow: 0 0 35px -5px rgba(0, 240, 255, 0.25);
+}
+.shadow-blue-glow {
+  box-shadow: 0 0 35px -5px rgba(56, 189, 248, 0.25);
+}
+.shadow-violet-glow {
+  box-shadow: 0 0 35px -5px rgba(168, 85, 247, 0.25);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #040407;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.4);
+}
+
+/* ─── Golden outline hover on all section headings ─── */
+section h2,
+section h3 {
+  transition: color 0.25s ease, -webkit-text-stroke 0.25s ease, text-shadow 0.25s ease;
+  cursor: default;
+}
+
+section h2:hover,
+section h3:hover {
+  color: transparent !important;
+  -webkit-text-stroke: 1.5px #d4a017;
+  text-shadow: 0 0 40px rgba(212, 160, 23, 0.35), 0 0 80px rgba(212, 160, 23, 0.15);
+}
+
+section h2:hover span,
+section h3:hover span {
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1.5px #d4a017;
+  background: none !important;
+}
+
+/* .heading-gold — apply to h1 manually */
+.heading-gold {
+  transition: color 0.25s ease, -webkit-text-stroke 0.25s ease, text-shadow 0.25s ease;
+  cursor: default;
+}
+.heading-gold:hover {
+  color: transparent !important;
+  -webkit-text-stroke: 2px #d4a017;
+  text-shadow: 0 0 50px rgba(212, 160, 23, 0.4), 0 0 100px rgba(212, 160, 23, 0.18);
+}
+.heading-gold:hover span {
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 2px #d4a017;
+  background: none !important;
+}
+
+/* ─── Restoring ticker animation ─── */
+@keyframes restoring-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════
+   SCROLL STRETCH REVEAL SYSTEM (Silky & Clean)
+   Every text element naturally stretches horizontally 
+   and lifts vertically into view as user scrolls.
+   ══════════════════════════════════════════════════════ */
+
+/* Initial state: slightly compressed & slightly shifted */
+.stretch-reveal {
+  opacity: 0;
+  transform: scaleX(0.85) scaleY(0.96) translateY(20px);
+  transform-origin: center center;
+  filter: blur(4px);
+  transition:
+    opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+}
+
+/* Revealed state: full scale, sharp, natural */
+.stretch-reveal.is-revealed {
+  opacity: 1;
+  transform: scaleX(1) scaleY(1) translateY(0);
+  filter: blur(0px);
+}
+
+/* Headings get a more prominent stretch effect */
+h1.stretch-reveal,
+h2.stretch-reveal,
+h3.stretch-reveal {
+  transform: scaleX(0.8) scaleY(0.92) translateY(24px);
+  letter-spacing: -0.02em;
+  transition:
+    opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    letter-spacing 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+h1.stretch-reveal.is-revealed,
+h2.stretch-reveal.is-revealed,
+h3.stretch-reveal.is-revealed {
+  letter-spacing: inherit;
+}
+
+/* Card container stretch */
+.stretch-card {
+  opacity: 0;
+  transform: translateY(28px) scale(0.96);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.stretch-card.is-revealed {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
