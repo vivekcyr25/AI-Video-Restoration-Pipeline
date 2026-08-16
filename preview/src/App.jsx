@@ -36,7 +36,7 @@ export default function App() {
 
     // Find all key text headings, paragraphs, labels, and card containers
     const elements = document.querySelectorAll(
-      'section h1, section h2, section h3, section p, section .grid > div, footer'
+      'section h1, section h2, section h3, section p, section .grid > div'
     )
 
     elements.forEach((el, index) => {
