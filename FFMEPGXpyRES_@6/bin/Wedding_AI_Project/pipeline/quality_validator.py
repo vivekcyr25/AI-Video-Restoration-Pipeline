@@ -110,10 +110,8 @@ class QualityValidator:
         ssims = []
         for o, r in zip(frames_orig, frames_rest):
             # Upscale original to match restored for direct comparison
-            o_up = cv2.resize(o, (r.shape[1], r.shape[2] if r.ndim==2 else r.shape[1]), interpolation=cv2.INTER_CUBIC)
-            if o_up.shape != r.shape:
-                o_up = cv2.resize(o_up, (r.shape[1], r.shape[0]))
-                
+            o_up = cv2.resize(o, (r.shape[1], r.shape[0]), interpolation=cv2.INTER_CUBIC)
+
             p_val = psnr_fn(o_up, r)
             s_val = ssim_fn(o_up, r, channel_axis=2)
             psnrs.append(p_val)

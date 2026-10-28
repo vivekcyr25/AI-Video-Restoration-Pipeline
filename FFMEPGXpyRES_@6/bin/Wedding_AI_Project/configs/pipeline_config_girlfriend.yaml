@@ -1,0 +1,66 @@
+# AI Video Restoration Pipeline Configuration for Girlfriend Photos
+# Optimized for RTX 3050 4GB (Low VRAM)
+
+global:
+  device: "cuda"
+  video_path: "1_Aug.mp4"
+  albums_dir: "Albums_girlfriend"
+  models_dir: "Models"
+  output_dir: "Output_girlfriend"
+  cudnn_benchmark: true
+  allow_tf32: true
+
+video_repair:
+  repaired_video_path: "Output_girlfriend/repaired_video.mp4"
+  cfr_video_path: "Output_girlfriend/cfr_video.mp4"
+  scene_csv_path: "Output_girlfriend/scenes.csv"
+  scene_threshold: 27.0
+  min_scene_len: 15
+  fps: 30.0
+
+frame_extractor:
+  output_dir: "Representative_Frames_girlfriend"
+  quality: 2                      # JPEG quality (1-31, lower is better)
+
+clip_embeddings:
+  batch_size: 32                  # Small batch size to prevent OOM
+  model_name: "ViT-B-32"
+  pretrained: "laion2b_s34b_b79k"
+
+face_embeddings:
+  detection_size: [640, 640]
+  face_cache_path: "Models/face_cache_girlfriend.json"
+
+hybrid_matching:
+  top_k: 5
+  weights:
+    face: 0.50
+    clip: 0.20
+    scene: 0.10
+    color: 0.10
+    lpips: 0.10
+  lpips_backbone: "vgg16"          # Builtin PyTorch VGG16 in FP16
+
+restoration:
+  output_dir: "Output_girlfriend/Restored_Frames"
+  strength: 0.72                  # Global enhancement intensity (0.0 - 1.0)
+  face_alignment_scale: 1.55      # Expanded box around face landmarks
+  denoise_bilateral_d: 9          # Bilateral filter diameter
+  denoise_bilateral_color: 75
+  denoise_bilateral_space: 75
+  unsharp_strength: 0.5
+  use_realesrgan: true
+  realesrgan_model: "RealESRGAN_x4plus_anime_6B" # lightweight model
+  realesrgan_half: true           # Use FP16 for Real-ESRGAN
+
+video_propagation:
+  output_silent: "Output_girlfriend/Restored_Wedding_silent.mp4"
+  output_final: "Output_girlfriend/Restored_Wedding_final.mp4"
+  model_type: "raft_small"         # torchvision RAFT-small for low VRAM
+  strength: 0.72
+  temporal_strength: 0.68
+  detail_strength: 0.35
+  flicker_removal: true
+  temporal_window_size: 5
+  batch_size: 16                  # Batched optical flow calculation
+  num_flow_updates: 8             # Number of RAFT updates (lower is faster)

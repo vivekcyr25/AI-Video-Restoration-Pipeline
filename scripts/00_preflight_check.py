@@ -53,6 +53,7 @@ REQUIRED_PYTHON_PACKAGES = [
     ("open_clip",  "open-clip-torch"),
     ("insightface","insightface"),
     ("pandas",     "pandas"),
+    ("skimage",    "scikit-image"),
 ]
 
 OPTIONAL_PYTHON_PACKAGES = [
