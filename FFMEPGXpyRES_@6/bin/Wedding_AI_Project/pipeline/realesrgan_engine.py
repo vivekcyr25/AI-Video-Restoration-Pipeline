@@ -182,6 +182,8 @@ class RealESRGANEngine:
         Handles FP16, tile blending, and automatic CPU fallback on OOM.
         """
         import torch
+        # Extract original dimensions before any processing
+        h, w = img.shape[:2]
         # Convert BGR to RGB since the RRDBNet model expects RGB order
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # Normalize and convert to torch float tensor

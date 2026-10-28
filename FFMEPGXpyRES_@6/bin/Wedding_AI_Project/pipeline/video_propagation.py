@@ -58,7 +58,7 @@ def warp_flow(img, flow):
     vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(1, H - 1) - 1.0
     vgrid = vgrid.permute(0, 2, 3, 1)
     output = torch.nn.functional.grid_sample(
-        img, vgrid, mode="bilinear", padding_mode="replicate", align_corners=True
+        img, vgrid, mode="bilinear", padding_mode="border", align_corners=True
     )
     return output
 
@@ -111,8 +111,8 @@ class VideoPropagationStage:
         else:
             model = opt_flow.raft_large(weights=opt_flow.Raft_Large_Weights.DEFAULT)
         model = model.to(self.device).eval()
-        if self.device == "cuda":
-            model = model.half()
+        # NOTE: RAFT must stay in float32 — its internal grid_sample ops require float32 grids
+        # DO NOT convert to half precision here
         return model
 
     def _get_scenes(self) -> list[dict]:
@@ -227,8 +227,7 @@ class VideoPropagationStage:
                 ref_detail = cv2.subtract(ref_gray, ref_smooth).astype(np.float32)
                 
                 ref_img_tensor = torch.from_numpy(ref_img).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                if self.device == "cuda":
-                    ref_img_tensor = ref_img_tensor.half()
+                # Keep float32 for RAFT - do NOT convert to half here
                     
                 delta_tensor = torch.from_numpy(delta_bgr).permute(2, 0, 1).unsqueeze(0).to(self.device)
                 detail_tensor = torch.from_numpy(ref_detail).unsqueeze(0).unsqueeze(0).to(self.device)
@@ -273,8 +272,7 @@ class VideoPropagationStage:
                     ref_tensors = []
                     for fb in batch_frames:
                         tgt_t = torch.from_numpy(fb).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                        if self.device == "cuda":
-                            tgt_t = tgt_t.half()
+                        # Keep float32 for RAFT - do NOT convert to half here
                         tgt_tensors.append(tgt_t)
                         ref_tensors.append(ref_img_tensor)
                         
@@ -300,14 +298,12 @@ class VideoPropagationStage:
                         
                         # 3. Compute residual and confidence
                         ref_orig_tensor_up = torch.from_numpy(ref_orig_upscaled).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                        if self.device == "cuda":
-                            ref_orig_tensor_up = ref_orig_tensor_up.half()
+                        # Keep float32 to match RAFT flow dtype
                         ref_warped = warp_flow(ref_orig_tensor_up, flow_upscaled)
                         
                         frame_upscaled = cv2.resize(fb, (w_out, h_out), interpolation=cv2.INTER_CUBIC)
                         tgt_upscaled_tensor = torch.from_numpy(frame_upscaled).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                        if self.device == "cuda":
-                            tgt_upscaled_tensor = tgt_upscaled_tensor.half()
+                        # Keep float32 to match RAFT flow dtype
                             
                         residual = torch.abs(tgt_upscaled_tensor - ref_warped).mean(dim=1, keepdim=True)
                         sigma = 35.0
@@ -340,8 +336,7 @@ class VideoPropagationStage:
                             ref_detail = cv2.subtract(ref_gray, ref_smooth).astype(np.float32)
                             
                             ref_img_tensor = torch.from_numpy(ref_img).permute(2, 0, 1).float().unsqueeze(0).to(self.device)
-                            if self.device == "cuda":
-                                ref_img_tensor = ref_img_tensor.half()
+                            # Keep float32 to match RAFT flow dtype
                                 
                             delta_tensor = torch.from_numpy(delta_bgr).permute(2, 0, 1).unsqueeze(0).to(self.device)
                             detail_tensor = torch.from_numpy(ref_detail).unsqueeze(0).unsqueeze(0).to(self.device)
