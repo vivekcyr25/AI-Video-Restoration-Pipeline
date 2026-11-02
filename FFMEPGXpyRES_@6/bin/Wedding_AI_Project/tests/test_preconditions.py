@@ -173,3 +173,4 @@ def test_identity_precision_calculation(tmp_path):
     assert res["wilson_95_ci"][0] > 0.70
     assert res["wilson_95_ci"][1] <= 1.0
     assert out_json.exists()
+

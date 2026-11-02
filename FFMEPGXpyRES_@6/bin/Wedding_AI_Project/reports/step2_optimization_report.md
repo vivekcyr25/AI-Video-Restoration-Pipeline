@@ -147,3 +147,4 @@ bottlenecks after Step 2 are:
 3. **RAFT Stage 7 (~85s, 28% of total pipeline)** — the largest remaining wall-clock target; Step 3 C++ CUDA kernels or TorchScript tracing could help here.
 
 No C++ module is introduced before profiling Step 3 targets.
+
