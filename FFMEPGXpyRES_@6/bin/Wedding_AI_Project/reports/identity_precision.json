@@ -1,0 +1,223 @@
+{
+  "labeled_faces_count": 30,
+  "assigned_faces_count": 30,
+  "correct_references_count": 30,
+  "precision": 1.0,
+  "coverage": 1.0,
+  "wilson_95_ci": [
+    0.8865,
+    1.0
+  ],
+  "evaluations": [
+    {
+      "frame_path": "frame_0090.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0099.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_161538",
+      "assigned_reference": "20260704_161538.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0099.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_162649",
+      "assigned_reference": "20260704_162649.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0108.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_161538",
+      "assigned_reference": "20260704_161538.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0108.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_161830",
+      "assigned_reference": "20260704_161830.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0117.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_161538",
+      "assigned_reference": "20260704_161538.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0117.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_162424",
+      "assigned_reference": "20260704_162424.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0126.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162424",
+      "assigned_reference": "20260704_162424.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0126.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_161931",
+      "assigned_reference": "20260704_161931.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0126.jpg",
+      "face_index": "2",
+      "true_person_id": "20260704_162841",
+      "assigned_reference": "20260704_162841.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0135.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162927",
+      "assigned_reference": "20260704_162927.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0135.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_161931",
+      "assigned_reference": "20260704_161931.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0135.jpg",
+      "face_index": "2",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0144.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162927",
+      "assigned_reference": "20260704_162927.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0144.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_161931",
+      "assigned_reference": "20260704_161931.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0144.jpg",
+      "face_index": "2",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0153.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0153.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_161931",
+      "assigned_reference": "20260704_161931.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0153.jpg",
+      "face_index": "2",
+      "true_person_id": "20260704_162811",
+      "assigned_reference": "20260704_162811.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0189.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162901",
+      "assigned_reference": "20260704_162901.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0198.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0198.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_163000",
+      "assigned_reference": "20260704_163000.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0207.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0207.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_163102",
+      "assigned_reference": "20260704_163102.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0216.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0216.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_162720",
+      "assigned_reference": "20260704_162720.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0225.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0225.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_162720",
+      "assigned_reference": "20260704_162720.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0234.jpg",
+      "face_index": "0",
+      "true_person_id": "20260704_162832",
+      "assigned_reference": "20260704_162832.jpg",
+      "is_correct": true
+    },
+    {
+      "frame_path": "frame_0234.jpg",
+      "face_index": "1",
+      "true_person_id": "20260704_163000",
+      "assigned_reference": "20260704_163000.jpg",
+      "is_correct": true
+    }
+  ]
+}
