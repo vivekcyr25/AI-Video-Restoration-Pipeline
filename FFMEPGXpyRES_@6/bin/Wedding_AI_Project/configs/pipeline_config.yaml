@@ -37,6 +37,7 @@ clip_embeddings:
 face_embeddings:
   detection_size: [640, 640]
   face_cache_path: "Models/face_cache.json"
+  require_gpu: true            # Raise if CUDAExecutionProvider unavailable when device=cuda
 
 hybrid_matching:
   top_k: 5
@@ -57,7 +58,7 @@ restoration:
   denoise_bilateral_space: 75
   unsharp_strength: 0.5
   use_realesrgan: true
-  realesrgan_model: "RealESRGAN_x4plus_anime_6B" # lightweight model
+  realesrgan_model: "RealESRGAN_x4plus"           # photo model (nb=23, 64MB)
   realesrgan_half: true           # Use FP16 for Real-ESRGAN
 
 video_propagation:
