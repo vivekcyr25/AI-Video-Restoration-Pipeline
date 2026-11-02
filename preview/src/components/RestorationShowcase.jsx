@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import StageIcon from './StageIcon'
 
 const RESTORATION_PHASES = [
   {
@@ -7,7 +8,7 @@ const RESTORATION_PHASES = [
     tool: 'FFmpeg & OpenCV',
     desc: 'Input anchor frame suffers from blocky compression artifacts, tape noise, and faded RGB saturation.',
     metrics: 'Resolution: 360p / Sub-optimal SNR',
-    icon: '📼',
+    icon: 'phase-1',
     color: 'from-amber-600/30 to-amber-900/10'
   },
   {
@@ -16,7 +17,7 @@ const RESTORATION_PHASES = [
     tool: 'InsightFace & Reinhard Transfer',
     desc: 'Locks facial landmark points (eyes, nose, mouth) to the matched high-resolution album photo. Harmonizes color distribution in Lab color space.',
     metrics: 'Landmark Error: < 0.8px Sub-pixel',
-    icon: '🎯',
+    icon: 'phase-2',
     color: 'from-blue-600/30 to-indigo-900/10'
   },
   {
@@ -25,7 +26,7 @@ const RESTORATION_PHASES = [
     tool: 'Frequency Band Decomposition',
     desc: 'Separates low-frequency luminance from high-frequency facial textures (pores, hair, iris reflections). Transfers sharp details using soft confidence masks.',
     metrics: 'Confidence Weight: 0.85 Soft-Alpha',
-    icon: '✨',
+    icon: 'phase-3',
     color: 'from-emerald-600/30 to-teal-900/10'
   },
   {
@@ -34,7 +35,7 @@ const RESTORATION_PHASES = [
     tool: 'Real-ESRGAN & PyTorch FP16',
     desc: 'Upscales architectural background, clothing drapery, and ambient scenery while maintaining strict identity preservation on foreground subjects.',
     metrics: 'Final Target: 1080p Master Frame',
-    icon: '🚀',
+    icon: 'phase-4',
     color: 'from-violet-600/30 to-purple-900/10'
   }
 ]
@@ -74,7 +75,9 @@ export default function RestorationShowcase() {
                 <span className="text-xs font-mono font-bold text-emerald-400">
                   STEP {phase.step}
                 </span>
-                <span className="text-xl">{phase.icon}</span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center text-emerald-400">
+                  <StageIcon icon={phase.icon} className="w-4 h-4" />
+                </div>
               </div>
 
               <h3 className="text-base font-bold text-white font-display">

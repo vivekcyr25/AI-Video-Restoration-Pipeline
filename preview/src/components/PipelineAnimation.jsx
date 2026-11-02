@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import StageIcon from './StageIcon'
 
 function MediaFrame({ variant, label, artifacts }) {
   const isVintage = variant === 'vintage'
@@ -87,7 +88,7 @@ function AlgorithmCore({ activeStage, onStageClick, stages }) {
           }`}
           title={stage.label}
         >
-          {stage.icon}
+          <StageIcon id={stage.id} className="w-5 h-5 text-cyber-blue" />
         </button>
       ))}
 
@@ -109,7 +110,7 @@ function AlgorithmCore({ activeStage, onStageClick, stages }) {
           }`}
           title={stage.label}
         >
-          {stage.icon}
+          <StageIcon id={stage.id} className="w-5 h-5 text-cyber-blue" />
         </button>
       ))}
 

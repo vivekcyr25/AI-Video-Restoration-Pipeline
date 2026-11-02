@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PIPELINE_STAGES } from '../data/pipelineData'
+import StageIcon from './StageIcon'
 
 export default function PipelineWorkflow({ onStageClick }) {
   const [hoveredStage, setHoveredStage] = useState(null)
@@ -52,13 +53,13 @@ export default function PipelineWorkflow({ onStageClick }) {
                   <div className="flex items-start gap-4">
                     {/* Stage Number & Icon */}
                     <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0 transition-transform duration-300 border ${
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 border ${
                         isActive
-                          ? 'bg-electric-cyan/20 border-electric-cyan text-white scale-105 shadow-inner'
-                          : 'bg-white/[0.04] border-white/10 text-slate-300 group-hover:scale-105'
+                          ? 'bg-electric-cyan/20 border-electric-cyan text-electric-cyan scale-105 shadow-inner'
+                          : 'bg-white/[0.04] border-white/10 text-slate-300 group-hover:text-electric-cyan group-hover:scale-105'
                       }`}
                     >
-                      {stage.icon}
+                      <StageIcon id={stage.id} className="w-5 h-5" />
                     </div>
 
                     {/* Stage Details */}
@@ -108,7 +109,9 @@ export default function PipelineWorkflow({ onStageClick }) {
               {/* Card Header */}
               <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{currentStage.icon}</span>
+                  <div className="w-10 h-10 rounded-xl bg-electric-cyan/15 border border-electric-cyan/40 flex items-center justify-center text-electric-cyan shadow-sm shrink-0">
+                    <StageIcon id={currentStage.id} className="w-5 h-5" />
+                  </div>
                   <div>
                     <span className="text-[10px] font-mono text-electric-cyan uppercase tracking-widest block font-semibold">
                       ACTIVE STAGE INSPECTION

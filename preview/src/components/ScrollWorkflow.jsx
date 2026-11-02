@@ -1,6 +1,7 @@
 import { memo, useRef } from 'react'
 import { STAGES } from '../data/pipeline'
 import { useSectionScroll } from '../hooks/useScroll'
+import StageIcon from './StageIcon'
 
 const StageCard = memo(function StageCard({ stage, active, onClick }) {
   return (
@@ -33,7 +34,7 @@ const StageCard = memo(function StageCard({ stage, active, onClick }) {
           <div
             className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-gradient-to-br ${stage.color} border border-white/10 shrink-0`}
           >
-            {stage.icon}
+            <StageIcon id={stage.id} className="w-6 h-6" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">

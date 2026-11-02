@@ -47,17 +47,17 @@ export default function AlbumMatchingSection() {
   return (
     <section id="matching" className="py-24 px-4 sm:px-6 relative bg-[#05060b] border-t border-white/[0.06] overflow-hidden">
       {/* Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-r from-violet-subtle/10 via-electric-cyan/10 to-transparent blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-r from-sky-500/10 via-electric-cyan/10 to-transparent blur-[140px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <p className="text-xs font-mono tracking-[0.25em] uppercase text-violet-glow font-semibold">
+          <p className="text-xs font-mono tracking-[0.25em] uppercase text-sky-400 font-semibold">
             THE CORE DIFFERENTIATOR
           </p>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white font-display uppercase leading-tight">
             When The Album Remembers<br />
-            <span className="bg-gradient-to-r from-white via-slate-200 to-violet-glow bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-white via-slate-200 to-sky-400 bg-clip-text text-transparent">
               What The Video Forgot
             </span>
           </h2>
@@ -73,7 +73,7 @@ export default function AlbumMatchingSection() {
                 onClick={() => setActivePairIdx(idx)}
                 className={`px-4 py-2 rounded-xl text-xs font-mono transition-all border ${
                   activePairIdx === idx
-                    ? 'bg-violet-subtle/20 border-violet-subtle text-violet-glow shadow-violet-glow'
+                    ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-blue-glow'
                     : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.06]'
                 }`}
               >
@@ -104,11 +104,11 @@ export default function AlbumMatchingSection() {
 
             {/* Center: Dual Vector Similarity Computation */}
             <div className="md:col-span-1 flex flex-col items-center justify-center gap-3 py-4">
-              <div className="hidden md:block w-px h-12 bg-gradient-to-b from-transparent via-violet-subtle to-transparent" />
-              <div className="w-10 h-10 rounded-full bg-violet-subtle/20 border border-violet-subtle text-violet-glow flex items-center justify-center text-xs font-mono shadow-violet-glow animate-pulse">
+              <div className="hidden md:block w-px h-12 bg-gradient-to-b from-transparent via-sky-400 to-transparent" />
+              <div className="w-10 h-10 rounded-full bg-sky-500/20 border border-sky-400 text-sky-300 flex items-center justify-center text-xs font-mono shadow-blue-glow animate-pulse">
                 ⇄
               </div>
-              <div className="hidden md:block w-px h-12 bg-gradient-to-b from-violet-subtle via-transparent to-transparent" />
+              <div className="hidden md:block w-px h-12 bg-gradient-to-b from-sky-400 via-transparent to-transparent" />
             </div>
 
             {/* Right: High-Resolution Album Photo */}
@@ -143,13 +143,13 @@ export default function AlbumMatchingSection() {
               <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-1">
                 OpenCLIP Semantics (30% Weight)
               </span>
-              <p className="text-2xl font-bold font-mono text-violet-glow">
+              <p className="text-2xl font-bold font-mono text-sky-400">
                 {activePair.clipScore.toFixed(3)}
               </p>
               <span className="text-[10px] text-slate-500 font-mono">ViT-B-32 Scene Composition</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-electric-cyan/10 to-violet-subtle/10 border border-electric-cyan/30 text-center">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-electric-cyan/10 to-sky-500/10 border border-electric-cyan/30 text-center">
               <span className="text-[10px] font-mono uppercase tracking-wider text-white font-semibold block mb-1">
                 Composite Match Score
               </span>
