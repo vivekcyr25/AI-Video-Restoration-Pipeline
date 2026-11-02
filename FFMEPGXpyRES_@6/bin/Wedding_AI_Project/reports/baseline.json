@@ -1,0 +1,200 @@
+{
+  "benchmark_version": "1.0.0",
+  "timestamp": "2026-11-02T18:01:37Z",
+  "hardware": {
+    "os": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "python_version": "3.14.5 (main, May 10 2026, 20:29:46) [MSC v.1944 64 bit (AMD64)]",
+    "hostname": "LAPTOP-IQ8HRLAB",
+    "torch_version": "2.14.1+cu126",
+    "cuda_available": true,
+    "cuda_version": "12.6",
+    "gpu_name": "NVIDIA GeForce RTX 3050 A Laptop GPU",
+    "gpu_count": 1,
+    "total_vram_bytes": 4292345856,
+    "total_vram_mb": 4093.5
+  },
+  "dataset": {
+    "video_path": "1_Aug.mp4",
+    "video_size_bytes": 971531,
+    "video_sha256": "7763233c88365a09b8b3d19ddf59d53395d15c65180db21e6df4c7801b38249a",
+    "albums_dir": "Albums_sample",
+    "albums_count": 65,
+    "albums_composite_sha256": "26f7646adb86e97881aef2285f5e6ae938cd9ac948b8f4d9bc9c340f2409fc0f"
+  },
+  "pipeline_config": {
+    "global": {
+      "device": "cuda",
+      "video_path": "1_Aug.mp4",
+      "albums_dir": "Albums_sample",
+      "models_dir": "Models",
+      "output_dir": "Output",
+      "cudnn_benchmark": true,
+      "allow_tf32": true
+    },
+    "benchmark": {
+      "enabled": true,
+      "test_video": "1_Aug.mp4",
+      "test_album": "Albums_sample",
+      "repetitions": 1
+    },
+    "video_repair": {
+      "repaired_video_path": "Output/repaired_video.mp4",
+      "cfr_video_path": "Output/cfr_video.mp4",
+      "scene_csv_path": "Output/scenes.csv",
+      "scene_threshold": 27.0,
+      "min_scene_len": 15,
+      "fps": 30.0
+    },
+    "frame_extractor": {
+      "output_dir": "Representative_Frames",
+      "quality": 2
+    },
+    "clip_embeddings": {
+      "batch_size": 32,
+      "model_name": "ViT-B-32",
+      "pretrained": "laion2b_s34b_b79k"
+    },
+    "face_embeddings": {
+      "detection_size": [
+        640,
+        640
+      ],
+      "face_cache_path": "Models/face_cache.json"
+    },
+    "hybrid_matching": {
+      "top_k": 5,
+      "weights": {
+        "face": 0.5,
+        "clip": 0.2,
+        "scene": 0.1,
+        "color": 0.1,
+        "lpips": 0.1
+      },
+      "lpips_backbone": "vgg16"
+    },
+    "restoration": {
+      "output_dir": "Output/Restored_Frames",
+      "strength": 0.72,
+      "face_alignment_scale": 1.55,
+      "denoise_bilateral_d": 9,
+      "denoise_bilateral_color": 75,
+      "denoise_bilateral_space": 75,
+      "unsharp_strength": 0.5,
+      "use_realesrgan": true,
+      "realesrgan_model": "RealESRGAN_x4plus_anime_6B",
+      "realesrgan_half": true
+    },
+    "video_propagation": {
+      "output_silent": "Output/Restored_Wedding_silent.mp4",
+      "output_final": "Output/Restored_Wedding_final.mp4",
+      "model_type": "raft_small",
+      "strength": 0.72,
+      "temporal_strength": 0.68,
+      "detail_strength": 0.35,
+      "flicker_removal": true,
+      "temporal_window_size": 5,
+      "batch_size": 2,
+      "num_flow_updates": 8
+    }
+  },
+  "stage_timings": {
+    "stage_1": {
+      "name": "Video Repair & CFR Transcode",
+      "wall_time_sec": 0.653,
+      "vram": {
+        "initial_allocated_mb": 0.0,
+        "peak_allocated_mb": 0.0,
+        "incremental_peak_mb": 0.0
+      },
+      "output_disk_bytes": 971731,
+      "output_disk_mb": 0.927
+    },
+    "stage_2": {
+      "name": "Representative Frame Extraction",
+      "wall_time_sec": 0.1,
+      "vram": {
+        "initial_allocated_mb": 0.0,
+        "peak_allocated_mb": 0.0,
+        "incremental_peak_mb": 0.0
+      },
+      "output_disk_bytes": 211340,
+      "output_disk_mb": 0.202
+    },
+    "stage_3": {
+      "name": "Batch CLIP Semantic Embeddings",
+      "wall_time_sec": 9.567,
+      "vram": {
+        "initial_allocated_mb": 0.0,
+        "peak_allocated_mb": 591.851,
+        "incremental_peak_mb": 591.851
+      },
+      "output_disk_bytes": 139520,
+      "output_disk_mb": 0.133
+    },
+    "stage_4": {
+      "name": "InsightFace Identity Detection & Cache",
+      "wall_time_sec": 191.479,
+      "vram": {
+        "initial_allocated_mb": 8.125,
+        "peak_allocated_mb": 8.125,
+        "incremental_peak_mb": 0.0
+      },
+      "output_disk_bytes": 1126265,
+      "output_disk_mb": 1.074
+    },
+    "stage_5": {
+      "name": "Hybrid Coarse-to-Fine Matcher",
+      "wall_time_sec": 3.169,
+      "vram": {
+        "initial_allocated_mb": 8.125,
+        "peak_allocated_mb": 756.863,
+        "incremental_peak_mb": 748.738
+      },
+      "output_disk_bytes": 1308,
+      "output_disk_mb": 0.001
+    },
+    "stage_6": {
+      "name": "Reference-Guided Face & Frame Restoration",
+      "wall_time_sec": 10.224,
+      "vram": {
+        "initial_allocated_mb": 8.125,
+        "peak_allocated_mb": 626.632,
+        "incremental_peak_mb": 618.507
+      },
+      "output_disk_bytes": 624711,
+      "output_disk_mb": 0.596
+    },
+    "stage_7": {
+      "name": "Batched RAFT Optical Flow Detail Propagation",
+      "wall_time_sec": 84.885,
+      "vram": {
+        "initial_allocated_mb": 16.687,
+        "peak_allocated_mb": 1991.006,
+        "incremental_peak_mb": 1974.32
+      },
+      "output_disk_bytes": 51333659,
+      "output_disk_mb": 48.956
+    },
+    "stage_8": {
+      "name": "Lossless Audio Stream Multiplexing",
+      "wall_time_sec": 0.107,
+      "vram": {
+        "initial_allocated_mb": 32.507,
+        "peak_allocated_mb": 32.507,
+        "incremental_peak_mb": 0.0
+      },
+      "output_disk_bytes": 51465273,
+      "output_disk_mb": 49.081
+    }
+  },
+  "total_execution_time_sec": 300.27,
+  "total_disk_consumption_bytes": 105873807,
+  "total_disk_consumption_mb": 100.969,
+  "preserved_baseline_frames": [
+    "scene_0001.jpg",
+    "scene_0002.jpg",
+    "scene_0003.jpg"
+  ],
+  "stage5_reference_file": "reports\\baseline_stage5_top5.json"
+}
