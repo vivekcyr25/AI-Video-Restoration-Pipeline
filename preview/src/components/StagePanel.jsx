@@ -1,4 +1,5 @@
 import { STAGES } from '../data/pipeline'
+import StageIcon from './StageIcon'
 
 export default function StagePanel({ activeStage, onClose, onStageSelect }) {
   const stage = STAGES.find((s) => s.id === activeStage)
@@ -29,7 +30,7 @@ export default function StagePanel({ activeStage, onClose, onStageSelect }) {
           <div
             className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-gradient-to-br ${stage.color} border border-white/10`}
           >
-            {stage.icon}
+            <StageIcon id={stage.id} className="w-7 h-7" />
           </div>
           <div>
             <p className="text-xs font-mono text-cyber-blue uppercase tracking-widest mb-1">

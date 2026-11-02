@@ -68,7 +68,7 @@ export const STAGES = [
     label: 'Scene Detect',
     short: 'Scenes',
     tool: 'PySceneDetect',
-    icon: '🎬',
+    icon: 'video-repair',
     color: 'from-amber-600/40 to-orange-800/20',
     description:
       'Analyzes inter-frame histogram differences to divide the video asset into shots. Reduces billions of frame comparisons to ~411 representative scenes.',
@@ -81,7 +81,7 @@ export const STAGES = [
     label: 'Frame Extract',
     short: 'Frames',
     tool: 'FFmpeg',
-    icon: '🖼️',
+    icon: 'frame-extract',
     color: 'from-yellow-700/30 to-amber-900/20',
     description:
       'Extracts one representative JPEG per scene — the midpoint frame — avoiding motion blur at cut points.',
@@ -94,7 +94,7 @@ export const STAGES = [
     label: 'CLIP Embed',
     short: 'CLIP',
     tool: 'OpenCLIP ViT-B-32',
-    icon: '🧠',
+    icon: 'clip-embed',
     color: 'from-teal-600/30 to-cyan-900/20',
     description:
       'Encodes reference assets and video frames into 512-dimensional semantic vectors capturing scene, objects, and composition.',
@@ -107,7 +107,7 @@ export const STAGES = [
     label: 'Face Match',
     short: 'Face',
     tool: 'InsightFace ArcFace',
-    icon: '👤',
+    icon: 'face-embed',
     color: 'from-blue-600/30 to-indigo-900/20',
     description:
       'RetinaFace detects faces; ArcFace ResNet-50 extracts pose-invariant 512-dim identity embeddings for primary subjects.',
@@ -120,7 +120,7 @@ export const STAGES = [
     label: 'Hybrid Match',
     short: 'Match',
     tool: 'Advanced Matcher',
-    icon: '🔗',
+    icon: 'semantic-matcher',
     color: 'from-violet-600/30 to-purple-900/20',
     description:
       'Ranks reference assets per frame: final_score = 0.70 × face + 0.30 × CLIP. Identity-centric assets are prioritized.',
@@ -133,7 +133,7 @@ export const STAGES = [
     label: 'Restore',
     short: 'Restore',
     tool: 'Face-Affine v2',
-    icon: '✨',
+    icon: 'restoration',
     color: 'from-emerald-600/30 to-green-900/20',
     description:
       'Face-guided affine alignment + high-frequency detail transfer from matched reference assets. CLAHE, bilateral filter, unsharp mask.',
@@ -146,7 +146,7 @@ export const STAGES = [
     label: 'Flow Propagate',
     short: 'Flow',
     tool: 'Farnebäck Optical Flow',
-    icon: '🌊',
+    icon: 'optical-flow',
     color: 'from-sky-600/30 to-blue-900/20',
     description:
       'Propagates restoration delta from representative frames to every frame in the scene — temporal coherence without per-frame AI.',
@@ -159,7 +159,7 @@ export const STAGES = [
     label: 'Audio Merge',
     short: 'Audio',
     tool: 'FFmpeg Stream Copy',
-    icon: '🎵',
+    icon: 'audio-mux',
     color: 'from-slate-500/30 to-zinc-800/20',
     description:
       'Original AAC audio stream copied byte-for-byte into the reconstructed video asset. Zero re-encoding, ~30 seconds.',
