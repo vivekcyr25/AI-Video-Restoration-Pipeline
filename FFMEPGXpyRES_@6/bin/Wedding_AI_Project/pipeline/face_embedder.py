@@ -13,10 +13,22 @@ import argparse
 import csv
 import json
 import logging
+import os
 from pathlib import Path
 
 import cv2
 import numpy as np
+
+# Ensure PyTorch's bundled CUDA libraries (cuBLAS, cuDNN) are discoverable by
+# ONNX Runtime before any ORT session is created.  PyTorch ships cublasLt64_12.dll
+# and cudnn64_9.dll inside torch/lib/ which ORT needs for CUDAExecutionProvider.
+try:
+    import torch as _torch
+    _torch_lib = str(Path(_torch.__file__).parent / "lib")
+    if _torch_lib not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = _torch_lib + os.pathsep + os.environ.get("PATH", "")
+except ImportError:
+    pass
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("face_embedder")
@@ -66,13 +78,38 @@ class FaceEmbedderStage:
         )
 
     def _initialize_detector(self):
+        import onnxruntime as ort
         from insightface.app import FaceAnalysis
         logger.info("Initializing InsightFace detector...")
-        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.device == "cuda" else ["CPUExecutionProvider"]
-        # Prepare app with correct execution providers
+
+        require_gpu = self.config.get("face_embeddings", {}).get("require_gpu", True)
+        available_providers = ort.get_available_providers()
+
+        if self.device == "cuda":
+            if "CUDAExecutionProvider" not in available_providers:
+                msg = (
+                    f"CUDAExecutionProvider is not available in onnxruntime "
+                    f"(available: {available_providers}). "
+                    f"Install onnxruntime-gpu matching CUDA {ort.__version__}."
+                )
+                if require_gpu:
+                    raise RuntimeError(msg)
+                else:
+                    logger.warning(msg + " Falling back to CPUExecutionProvider.")
+            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        else:
+            providers = ["CPUExecutionProvider"]
+
         app = FaceAnalysis(name="buffalo_l", providers=providers)
         ctx_id = 0 if self.device == "cuda" else -1
         app.prepare(ctx_id=ctx_id, det_size=self.detection_size)
+
+        # Log which providers actually got applied (InsightFace may silently downgrade)
+        for model_name, model in app.models.items():
+            sess = getattr(model, "session", None)
+            if sess is not None:
+                actual = sess.get_providers()
+                logger.info(f"InsightFace model '{model_name}' using providers: {actual}")
         return app
 
     def _extract_and_cache(self, image_paths: list[Path], force: bool = False) -> None:
