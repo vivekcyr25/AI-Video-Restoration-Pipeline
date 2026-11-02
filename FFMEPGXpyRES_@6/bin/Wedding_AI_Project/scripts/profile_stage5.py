@@ -451,3 +451,4 @@ if __name__ == "__main__":
         config_path=_project_root / "configs" / "pipeline_config.yaml",
         output_md_path=_project_root / "reports" / "stage5_profile.md"
     )
+
