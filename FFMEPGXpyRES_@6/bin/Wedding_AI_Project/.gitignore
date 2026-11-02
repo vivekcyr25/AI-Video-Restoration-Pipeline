@@ -45,6 +45,16 @@ Representative_Frames/
 Albums/
 Albums_sample/
 albums_sample/
+Albums_girlfriend/
+albums_girlfriend/
+
+# ── Private Review / Benchmark Frames ─────────
+reports/identity_review/
+reports/baseline_frames/
+reports/visual_check_gated/
+reports/*.jpg
+reports/*.jpeg
+reports/*.png
 
 
 # ── Python cache & bytecode ────────────────────
