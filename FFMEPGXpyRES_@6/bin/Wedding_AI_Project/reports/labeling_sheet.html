@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Face Identity Ground-Truth Labeling Sheet</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; }
+    
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      position: sticky;
+      top: 12px;
+      z-index: 100;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-info h1 { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+    .header-info p { font-size: 13px; color: var(--text-muted); }
+    
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      background: #0f172a;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .stat-badge { font-weight: 600; color: var(--text); }
+    .stat-badge span { color: var(--accent); }
+    
+    .actions { display: flex; gap: 12px; }
+    button.btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    button.btn:hover { background: var(--accent-hover); color: white; }
+    button.btn-secondary { background: #334155; color: var(--text); }
+    button.btn-secondary:hover { background: #475569; }
+
+    /* Instructions box */
+    .guide-banner {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .guide-banner strong { color: var(--accent); }
+
+    /* Reference album drawer */
+    details.album-ref {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 24px;
+    }
+    details.album-ref summary {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      user-select: none;
+    }
+    .album-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    .album-item {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .album-item:hover {
+      transform: scale(1.03);
+      border-color: var(--accent);
+    }
+    .album-item img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    .album-item .name {
+      font-size: 11px;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+
+    /* Candidate cards grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .candidate-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .candidate-card.labeled {
+      border-color: var(--success);
+      box-shadow: 0 0 0 1px var(--success);
+    }
+    .candidate-card.unsure {
+      border-color: var(--warning);
+      opacity: 0.7;
+    }
+    .crop-wrapper {
+      width: 160px;
+      height: 160px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      border: 2px solid #334155;
+    }
+    .crop-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .card-meta {
+      text-align: center;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .card-meta .frame-title {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .card-meta .face-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .input-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+    .input-group input:focus {
+      border-color: var(--accent);
+    }
+    .button-row {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+    }
+    .btn-small {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #334155;
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-small:hover { background: #475569; }
+    .btn-small.active-unsure { background: var(--warning); color: #000; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-info">
+      <h1>Face Identity Review & Ground-Truth Labeling</h1>
+      <p>Independent human evaluation sheet. Unbiased: model predictions are strictly hidden.</p>
+    </div>
+    
+    <div class="stats-bar">
+      <div class="stat-badge">Total: <span id="stat-total">30</span></div>
+      <div class="stat-badge">Labeled: <span id="stat-labeled">0</span></div>
+      <div class="stat-badge">Unsure / Blank: <span id="stat-unsure">0</span></div>
+    </div>
+    
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="clearAll()">Reset Form</button>
+      <button class="btn" onclick="exportCSV()">Download identity_labels.csv</button>
+    </div>
+  </header>
+
+  <div class="guide-banner">
+    <strong>Labeling Guidelines:</strong>
+    Compare each candidate face crop with the album photos below. Enter a consistent identifier for each person (e.g., <code>groom</code>, <code>bride</code>, or click any album photo to insert its reference ID like <code>20260704_161931</code>). If identity cannot be determined with confidence, click <strong>Mark Unsure</strong> to leave it blank. Aim for &ge; 20 labeled faces across distinct people.
+  </div>
+
+  <details class="album-ref" open>
+    <summary>&#128247; Album Reference Photos Gallery (65 photos available - click any to select ID)</summary>
+    <div class="album-grid">
+      <div class="album-item" onclick="applyToActiveInput('20260704_161237')">
+        <img src="../Albums_sample/20260704_161237.jpg" alt="20260704_161237" loading="lazy">
+        <div class="name">20260704_161237</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161307')">
+        <img src="../Albums_sample/20260704_161307.jpg" alt="20260704_161307" loading="lazy">
+        <div class="name">20260704_161307</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161315')">
+        <img src="../Albums_sample/20260704_161315.jpg" alt="20260704_161315" loading="lazy">
+        <div class="name">20260704_161315</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161354')">
+        <img src="../Albums_sample/20260704_161354.jpg" alt="20260704_161354" loading="lazy">
+        <div class="name">20260704_161354</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161418')">
+        <img src="../Albums_sample/20260704_161418.jpg" alt="20260704_161418" loading="lazy">
+        <div class="name">20260704_161418</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161447')">
+        <img src="../Albums_sample/20260704_161447.jpg" alt="20260704_161447" loading="lazy">
+        <div class="name">20260704_161447</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161516')">
+        <img src="../Albums_sample/20260704_161516.jpg" alt="20260704_161516" loading="lazy">
+        <div class="name">20260704_161516</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161538')">
+        <img src="../Albums_sample/20260704_161538.jpg" alt="20260704_161538" loading="lazy">
+        <div class="name">20260704_161538</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161610')">
+        <img src="../Albums_sample/20260704_161610.jpg" alt="20260704_161610" loading="lazy">
+        <div class="name">20260704_161610</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161633')">
+        <img src="../Albums_sample/20260704_161633.jpg" alt="20260704_161633" loading="lazy">
+        <div class="name">20260704_161633</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161643')">
+        <img src="../Albums_sample/20260704_161643.jpg" alt="20260704_161643" loading="lazy">
+        <div class="name">20260704_161643</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161648')">
+        <img src="../Albums_sample/20260704_161648.jpg" alt="20260704_161648" loading="lazy">
+        <div class="name">20260704_161648</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161722')">
+        <img src="../Albums_sample/20260704_161722.jpg" alt="20260704_161722" loading="lazy">
+        <div class="name">20260704_161722</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161743')">
+        <img src="../Albums_sample/20260704_161743.jpg" alt="20260704_161743" loading="lazy">
+        <div class="name">20260704_161743</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161830')">
+        <img src="../Albums_sample/20260704_161830.jpg" alt="20260704_161830" loading="lazy">
+        <div class="name">20260704_161830</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161931')">
+        <img src="../Albums_sample/20260704_161931.jpg" alt="20260704_161931" loading="lazy">
+        <div class="name">20260704_161931</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161937')">
+        <img src="../Albums_sample/20260704_161937.jpg" alt="20260704_161937" loading="lazy">
+        <div class="name">20260704_161937</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_161956')">
+        <img src="../Albums_sample/20260704_161956.jpg" alt="20260704_161956" loading="lazy">
+        <div class="name">20260704_161956</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162001')">
+        <img src="../Albums_sample/20260704_162001.jpg" alt="20260704_162001" loading="lazy">
+        <div class="name">20260704_162001</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162034')">
+        <img src="../Albums_sample/20260704_162034.jpg" alt="20260704_162034" loading="lazy">
+        <div class="name">20260704_162034</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162103')">
+        <img src="../Albums_sample/20260704_162103.jpg" alt="20260704_162103" loading="lazy">
+        <div class="name">20260704_162103</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162111')">
+        <img src="../Albums_sample/20260704_162111.jpg" alt="20260704_162111" loading="lazy">
+        <div class="name">20260704_162111</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162135')">
+        <img src="../Albums_sample/20260704_162135.jpg" alt="20260704_162135" loading="lazy">
+        <div class="name">20260704_162135</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162209')">
+        <img src="../Albums_sample/20260704_162209.jpg" alt="20260704_162209" loading="lazy">
+        <div class="name">20260704_162209</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162235')">
+        <img src="../Albums_sample/20260704_162235.jpg" alt="20260704_162235" loading="lazy">
+        <div class="name">20260704_162235</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162250')">
+        <img src="../Albums_sample/20260704_162250.jpg" alt="20260704_162250" loading="lazy">
+        <div class="name">20260704_162250</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162305')">
+        <img src="../Albums_sample/20260704_162305.jpg" alt="20260704_162305" loading="lazy">
+        <div class="name">20260704_162305</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162331')">
+        <img src="../Albums_sample/20260704_162331.jpg" alt="20260704_162331" loading="lazy">
+        <div class="name">20260704_162331</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162336')">
+        <img src="../Albums_sample/20260704_162336.jpg" alt="20260704_162336" loading="lazy">
+        <div class="name">20260704_162336</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162342')">
+        <img src="../Albums_sample/20260704_162342.jpg" alt="20260704_162342" loading="lazy">
+        <div class="name">20260704_162342</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162404')">
+        <img src="../Albums_sample/20260704_162404.jpg" alt="20260704_162404" loading="lazy">
+        <div class="name">20260704_162404</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162424')">
+        <img src="../Albums_sample/20260704_162424.jpg" alt="20260704_162424" loading="lazy">
+        <div class="name">20260704_162424</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162431')">
+        <img src="../Albums_sample/20260704_162431.jpg" alt="20260704_162431" loading="lazy">
+        <div class="name">20260704_162431</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162448')">
+        <img src="../Albums_sample/20260704_162448.jpg" alt="20260704_162448" loading="lazy">
+        <div class="name">20260704_162448</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162537')">
+        <img src="../Albums_sample/20260704_162537.jpg" alt="20260704_162537" loading="lazy">
+        <div class="name">20260704_162537</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162549')">
+        <img src="../Albums_sample/20260704_162549.jpg" alt="20260704_162549" loading="lazy">
+        <div class="name">20260704_162549</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162556')">
+        <img src="../Albums_sample/20260704_162556.jpg" alt="20260704_162556" loading="lazy">
+        <div class="name">20260704_162556</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162608')">
+        <img src="../Albums_sample/20260704_162608.jpg" alt="20260704_162608" loading="lazy">
+        <div class="name">20260704_162608</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162622')">
+        <img src="../Albums_sample/20260704_162622.jpg" alt="20260704_162622" loading="lazy">
+        <div class="name">20260704_162622</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162649')">
+        <img src="../Albums_sample/20260704_162649.jpg" alt="20260704_162649" loading="lazy">
+        <div class="name">20260704_162649</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162706')">
+        <img src="../Albums_sample/20260704_162706.jpg" alt="20260704_162706" loading="lazy">
+        <div class="name">20260704_162706</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162720')">
+        <img src="../Albums_sample/20260704_162720.jpg" alt="20260704_162720" loading="lazy">
+        <div class="name">20260704_162720</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162730')">
+        <img src="../Albums_sample/20260704_162730.jpg" alt="20260704_162730" loading="lazy">
+        <div class="name">20260704_162730</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162744')">
+        <img src="../Albums_sample/20260704_162744.jpg" alt="20260704_162744" loading="lazy">
+        <div class="name">20260704_162744</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162802')">
+        <img src="../Albums_sample/20260704_162802.jpg" alt="20260704_162802" loading="lazy">
+        <div class="name">20260704_162802</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162811')">
+        <img src="../Albums_sample/20260704_162811.jpg" alt="20260704_162811" loading="lazy">
+        <div class="name">20260704_162811</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162832')">
+        <img src="../Albums_sample/20260704_162832.jpg" alt="20260704_162832" loading="lazy">
+        <div class="name">20260704_162832</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162841')">
+        <img src="../Albums_sample/20260704_162841.jpg" alt="20260704_162841" loading="lazy">
+        <div class="name">20260704_162841</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162901')">
+        <img src="../Albums_sample/20260704_162901.jpg" alt="20260704_162901" loading="lazy">
+        <div class="name">20260704_162901</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162915')">
+        <img src="../Albums_sample/20260704_162915.jpg" alt="20260704_162915" loading="lazy">
+        <div class="name">20260704_162915</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162927')">
+        <img src="../Albums_sample/20260704_162927.jpg" alt="20260704_162927" loading="lazy">
+        <div class="name">20260704_162927</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162938')">
+        <img src="../Albums_sample/20260704_162938.jpg" alt="20260704_162938" loading="lazy">
+        <div class="name">20260704_162938</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_162953')">
+        <img src="../Albums_sample/20260704_162953.jpg" alt="20260704_162953" loading="lazy">
+        <div class="name">20260704_162953</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163000')">
+        <img src="../Albums_sample/20260704_163000.jpg" alt="20260704_163000" loading="lazy">
+        <div class="name">20260704_163000</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163010')">
+        <img src="../Albums_sample/20260704_163010.jpg" alt="20260704_163010" loading="lazy">
+        <div class="name">20260704_163010</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163029')">
+        <img src="../Albums_sample/20260704_163029.jpg" alt="20260704_163029" loading="lazy">
+        <div class="name">20260704_163029</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163047')">
+        <img src="../Albums_sample/20260704_163047.jpg" alt="20260704_163047" loading="lazy">
+        <div class="name">20260704_163047</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163102')">
+        <img src="../Albums_sample/20260704_163102.jpg" alt="20260704_163102" loading="lazy">
+        <div class="name">20260704_163102</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163113')">
+        <img src="../Albums_sample/20260704_163113.jpg" alt="20260704_163113" loading="lazy">
+        <div class="name">20260704_163113</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163151')">
+        <img src="../Albums_sample/20260704_163151.jpg" alt="20260704_163151" loading="lazy">
+        <div class="name">20260704_163151</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163158')">
+        <img src="../Albums_sample/20260704_163158.jpg" alt="20260704_163158" loading="lazy">
+        <div class="name">20260704_163158</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163216')">
+        <img src="../Albums_sample/20260704_163216.jpg" alt="20260704_163216" loading="lazy">
+        <div class="name">20260704_163216</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163220')">
+        <img src="../Albums_sample/20260704_163220.jpg" alt="20260704_163220" loading="lazy">
+        <div class="name">20260704_163220</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163248')">
+        <img src="../Albums_sample/20260704_163248.jpg" alt="20260704_163248" loading="lazy">
+        <div class="name">20260704_163248</div>
+      </div>
+      <div class="album-item" onclick="applyToActiveInput('20260704_163305')">
+        <img src="../Albums_sample/20260704_163305.jpg" alt="20260704_163305" loading="lazy">
+        <div class="name">20260704_163305</div>
+      </div>
+    </div>
+  </details>
+
+  <div class="cards-grid">
+    <div class="candidate-card" id="card_face_0">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0090_face_0.jpg" alt="frame_0090.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0090.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #1)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_0" data-frame="frame_0090.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_0')" onfocus="setActiveInput('face_0')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_0')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_0')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_1">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0099_face_0.jpg" alt="frame_0099.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0099.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #2)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_1" data-frame="frame_0099.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_1')" onfocus="setActiveInput('face_1')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_1')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_1')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_2">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0099_face_1.jpg" alt="frame_0099.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0099.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #3)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_2" data-frame="frame_0099.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_2')" onfocus="setActiveInput('face_2')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_2')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_2')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_3">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0108_face_0.jpg" alt="frame_0108.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0108.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #4)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_3" data-frame="frame_0108.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_3')" onfocus="setActiveInput('face_3')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_3')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_3')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_4">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0108_face_1.jpg" alt="frame_0108.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0108.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #5)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_4" data-frame="frame_0108.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_4')" onfocus="setActiveInput('face_4')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_4')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_4')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_5">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0117_face_0.jpg" alt="frame_0117.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0117.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #6)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_5" data-frame="frame_0117.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_5')" onfocus="setActiveInput('face_5')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_5')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_5')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_6">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0117_face_1.jpg" alt="frame_0117.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0117.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #7)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_6" data-frame="frame_0117.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_6')" onfocus="setActiveInput('face_6')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_6')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_6')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_7">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0126_face_0.jpg" alt="frame_0126.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0126.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #8)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_7" data-frame="frame_0126.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_7')" onfocus="setActiveInput('face_7')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_7')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_7')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_8">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0126_face_1.jpg" alt="frame_0126.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0126.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #9)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_8" data-frame="frame_0126.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_8')" onfocus="setActiveInput('face_8')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_8')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_8')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_9">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0126_face_2.jpg" alt="frame_0126.jpg face 2">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0126.jpg</div>
+        <div class="face-sub">Face Index #2 (Candidate #10)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_9" data-frame="frame_0126.jpg" data-index="2" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_9')" onfocus="setActiveInput('face_9')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_9')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_9')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_10">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0135_face_0.jpg" alt="frame_0135.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0135.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #11)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_10" data-frame="frame_0135.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_10')" onfocus="setActiveInput('face_10')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_10')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_10')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_11">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0135_face_1.jpg" alt="frame_0135.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0135.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #12)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_11" data-frame="frame_0135.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_11')" onfocus="setActiveInput('face_11')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_11')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_11')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_12">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0135_face_2.jpg" alt="frame_0135.jpg face 2">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0135.jpg</div>
+        <div class="face-sub">Face Index #2 (Candidate #13)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_12" data-frame="frame_0135.jpg" data-index="2" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_12')" onfocus="setActiveInput('face_12')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_12')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_12')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_13">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0144_face_0.jpg" alt="frame_0144.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0144.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #14)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_13" data-frame="frame_0144.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_13')" onfocus="setActiveInput('face_13')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_13')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_13')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_14">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0144_face_1.jpg" alt="frame_0144.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0144.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #15)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_14" data-frame="frame_0144.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_14')" onfocus="setActiveInput('face_14')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_14')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_14')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_15">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0144_face_2.jpg" alt="frame_0144.jpg face 2">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0144.jpg</div>
+        <div class="face-sub">Face Index #2 (Candidate #16)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_15" data-frame="frame_0144.jpg" data-index="2" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_15')" onfocus="setActiveInput('face_15')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_15')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_15')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_16">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0153_face_0.jpg" alt="frame_0153.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0153.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #17)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_16" data-frame="frame_0153.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_16')" onfocus="setActiveInput('face_16')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_16')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_16')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_17">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0153_face_1.jpg" alt="frame_0153.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0153.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #18)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_17" data-frame="frame_0153.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_17')" onfocus="setActiveInput('face_17')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_17')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_17')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_18">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0153_face_2.jpg" alt="frame_0153.jpg face 2">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0153.jpg</div>
+        <div class="face-sub">Face Index #2 (Candidate #19)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_18" data-frame="frame_0153.jpg" data-index="2" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_18')" onfocus="setActiveInput('face_18')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_18')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_18')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_19">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0189_face_0.jpg" alt="frame_0189.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0189.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #20)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_19" data-frame="frame_0189.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_19')" onfocus="setActiveInput('face_19')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_19')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_19')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_20">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0198_face_0.jpg" alt="frame_0198.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0198.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #21)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_20" data-frame="frame_0198.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_20')" onfocus="setActiveInput('face_20')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_20')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_20')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_21">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0198_face_1.jpg" alt="frame_0198.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0198.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #22)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_21" data-frame="frame_0198.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_21')" onfocus="setActiveInput('face_21')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_21')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_21')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_22">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0207_face_0.jpg" alt="frame_0207.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0207.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #23)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_22" data-frame="frame_0207.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_22')" onfocus="setActiveInput('face_22')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_22')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_22')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_23">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0207_face_1.jpg" alt="frame_0207.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0207.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #24)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_23" data-frame="frame_0207.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_23')" onfocus="setActiveInput('face_23')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_23')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_23')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_24">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0216_face_0.jpg" alt="frame_0216.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0216.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #25)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_24" data-frame="frame_0216.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_24')" onfocus="setActiveInput('face_24')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_24')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_24')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_25">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0216_face_1.jpg" alt="frame_0216.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0216.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #26)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_25" data-frame="frame_0216.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_25')" onfocus="setActiveInput('face_25')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_25')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_25')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_26">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0225_face_0.jpg" alt="frame_0225.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0225.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #27)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_26" data-frame="frame_0225.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_26')" onfocus="setActiveInput('face_26')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_26')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_26')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_27">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0225_face_1.jpg" alt="frame_0225.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0225.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #28)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_27" data-frame="frame_0225.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_27')" onfocus="setActiveInput('face_27')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_27')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_27')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_28">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0234_face_0.jpg" alt="frame_0234.jpg face 0">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0234.jpg</div>
+        <div class="face-sub">Face Index #0 (Candidate #29)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_28" data-frame="frame_0234.jpg" data-index="0" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_28')" onfocus="setActiveInput('face_28')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_28')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_28')">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="candidate-card" id="card_face_29">
+      <div class="crop-wrapper">
+        <img src="identity_review/frame_0234_face_1.jpg" alt="frame_0234.jpg face 1">
+      </div>
+      <div class="card-meta">
+        <div class="frame-title">frame_0234.jpg</div>
+        <div class="face-sub">Face Index #1 (Candidate #30)</div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input_face_29" data-frame="frame_0234.jpg" data-index="1" 
+               placeholder="Person ID (e.g. groom, bride, 161931)..." oninput="onInputChange('face_29')" onfocus="setActiveInput('face_29')">
+        <div class="button-row">
+          <button class="btn-small" onclick="markUnsure('face_29')">Mark Unsure</button>
+          <button class="btn-small" onclick="clearField('face_29')">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeInputId = null;
+
+    function setActiveInput(id) {
+      activeInputId = 'input_' + id;
+    }
+
+    function applyToActiveInput(idValue) {
+      if (!activeInputId) {
+        alert("Please click on a candidate face text input box first, then click an album photo to assign its ID.");
+        return;
+      }
+      const el = document.getElementById(activeInputId);
+      if (el) {
+        el.value = idValue;
+        const rowId = activeInputId.replace('input_', '');
+        onInputChange(rowId);
+      }
+    }
+
+    function onInputChange(rowId) {
+      const input = document.getElementById('input_' + rowId);
+      const card = document.getElementById('card_' + rowId);
+      const val = input.value.trim();
+      
+      if (val === '') {
+        card.classList.remove('labeled');
+        card.classList.remove('unsure');
+      } else {
+        card.classList.add('labeled');
+        card.classList.remove('unsure');
+      }
+      updateStats();
+      saveProgress();
+    }
+
+    function markUnsure(rowId) {
+      const input = document.getElementById('input_' + rowId);
+      const card = document.getElementById('card_' + rowId);
+      input.value = '';
+      card.classList.remove('labeled');
+      card.classList.add('unsure');
+      updateStats();
+      saveProgress();
+    }
+
+    function clearField(rowId) {
+      const input = document.getElementById('input_' + rowId);
+      const card = document.getElementById('card_' + rowId);
+      input.value = '';
+      card.classList.remove('labeled');
+      card.classList.remove('unsure');
+      updateStats();
+      saveProgress();
+    }
+
+    function clearAll() {
+      if (confirm("Reset all entered labels on this sheet?")) {
+        const inputs = document.querySelectorAll('input[type="text"]');
+        inputs.forEach(input => {
+          input.value = '';
+          const rowId = input.id.replace('input_', '');
+          const card = document.getElementById('card_' + rowId);
+          card.classList.remove('labeled');
+          card.classList.remove('unsure');
+        });
+        localStorage.removeItem('identity_labeling_progress');
+        updateStats();
+      }
+    }
+
+    function updateStats() {
+      const inputs = document.querySelectorAll('input[type="text"]');
+      let labeled = 0;
+      let unsure = 0;
+      
+      inputs.forEach(input => {
+        const val = input.value.trim();
+        const rowId = input.id.replace('input_', '');
+        const card = document.getElementById('card_' + rowId);
+        if (val !== '') {
+          labeled++;
+        } else if (card.classList.contains('unsure')) {
+          unsure++;
+        }
+      });
+      
+      document.getElementById('stat-labeled').innerText = labeled;
+      document.getElementById('stat-unsure').innerText = unsure + (inputs.length - labeled - unsure);
+    }
+
+    function saveProgress() {
+      const data = {};
+      const inputs = document.querySelectorAll('input[type="text"]');
+      inputs.forEach(input => {
+        data[input.id] = input.value;
+      });
+      localStorage.setItem('identity_labeling_progress', JSON.stringify(data));
+    }
+
+    function loadProgress() {
+      const saved = localStorage.getItem('identity_labeling_progress');
+      if (!saved) return;
+      try {
+        const data = JSON.parse(saved);
+        for (const [id, val] of Object.entries(data)) {
+          const input = document.getElementById(id);
+          if (input && val) {
+            input.value = val;
+            const rowId = id.replace('input_', '');
+            const card = document.getElementById('card_' + rowId);
+            card.classList.add('labeled');
+          }
+        }
+        updateStats();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function exportCSV() {
+      const rows = [["frame_path", "face_index", "true_person_id"]];
+      const inputs = document.querySelectorAll('input[type="text"]');
+      
+      inputs.forEach(input => {
+        const fpath = input.getAttribute('data-frame');
+        const fidx = input.getAttribute('data-index');
+        const val = input.value.trim();
+        rows.push([fpath, fidx, val]);
+      });
+      
+      let csvContent = "";
+      rows.forEach(r => {
+        csvContent += r.map(x => '"' + (x.toString().replace(/"/g, '""')) + '"').join(",") + "\n";
+      });
+      
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "identity_labels.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadProgress();
+      updateStats();
+    });
+  </script>
+</body>
+</html>
