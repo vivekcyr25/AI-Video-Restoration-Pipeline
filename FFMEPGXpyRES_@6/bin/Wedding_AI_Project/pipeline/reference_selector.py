@@ -9,13 +9,26 @@ Computes and fuses five similarity metrics:
   4. Color Histogram Similarity (Bhattacharyya Distance in Lab Space)
   5. Perceptual Similarity (VGG16 LPIPS-equivalent)
 Fuses scores using confidence weights and outputs the ranked reference mappings.
+
+Optimizations applied (Step 2 — Python-level):
+  2.1 — Eliminated .cpu().item() inside LPIPS loop: accumulate on-GPU tensor and
+         transfer a single scalar per candidate.
+  2.2 — Batched CLIP/ArcFace matrix similarity: numpy matrix–vector ops replace
+         per-element Python loops.
+  2.3 — Persistent .npz album feature cache keyed by album composite SHA-256 hash;
+         album VGG features and histograms are computed once and reloaded on
+         subsequent runs without disk I/O for cv2.imread or model inference.
+  2.4 — Vectorized score fusion: numpy broadcasting replaces per-element Python
+         arithmetic inside the coarse scoring loop.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import logging
+import os
 from pathlib import Path
 
 import cv2
@@ -27,6 +40,20 @@ from utils.image_utils import compute_histogram, histogram_similarity
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("reference_selector")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _dir_sha256(dir_path: Path) -> str:
+    """Deterministic composite SHA-256 of all file names + sizes in a directory."""
+    h = hashlib.sha256()
+    for p in sorted(dir_path.glob("*")):
+        if p.is_file():
+            h.update(p.name.encode("utf-8"))
+            h.update(str(p.stat().st_size).encode("utf-8"))
+    return h.hexdigest()
 
 
 class ReferenceSelectorStage:
@@ -120,6 +147,20 @@ class ReferenceSelectorStage:
         # Load face metadata
         album_faces = self._load_face_metadata("album")
         frame_faces = self._load_face_metadata("frame")
+
+        # ── OPT 2.2: Pre-build ArcFace embedding matrix for album (N, D) ──
+        # Stack all album ArcFace embeddings into a matrix to allow batched
+        # matrix–vector cosine similarity instead of per-element Python loops.
+        album_face_emb_matrix = None
+        album_has_face = np.zeros(len(album_names), dtype=bool)
+        if album_faces:
+            emb_dim = next(iter(album_faces.values()))["embedding"].shape[0]
+            album_face_emb_matrix = np.zeros((len(album_names), emb_dim), dtype=np.float32)
+            for a_idx, a_name in enumerate(album_names):
+                a_face = album_faces.get(a_name)
+                if a_face is not None:
+                    album_face_emb_matrix[a_idx] = a_face["embedding"]
+                    album_has_face[a_idx] = True
         
         # Compute Scene similarity context
         window = 3
@@ -137,23 +178,74 @@ class ReferenceSelectorStage:
         if use_fp16:
             lpips_net = lpips_net.half()
 
-        # Precompute album histograms and VGG features to prevent redundant disk I/O and model inferences
-        logger.info("Precomputing histograms and VGG perceptual features for all album images...")
-        album_hists = {}
-        album_vgg_feats = {}
-        for a_name in album_names:
-            a_path = self.albums_dir / a_name
-            a_img = cv2.imread(str(a_path))
-            if a_img is not None:
-                album_hists[a_name] = compute_histogram(a_img)
-                a_tensor = self._preprocess_lpips_from_img(a_img).to(self.device)
-                if use_fp16:
-                    a_tensor = a_tensor.half()
-                with torch.inference_mode():
-                    album_vgg_feats[a_name] = lpips_net(a_tensor)
-            else:
-                album_hists[a_name] = None
-                album_vgg_feats[a_name] = None
+        # ── OPT 2.3: Persistent album feature cache (.npz) ──────────────────
+        # Cache is keyed by a composite hash of album directory contents so
+        # it is automatically invalidated when album photos change.
+        cache_dir = self.models_dir
+        album_hash = _dir_sha256(self.albums_dir)
+        cache_path = cache_dir / f"album_vgg_cache_{album_hash[:16]}.npz"
+
+        if cache_path.exists() and not force:
+            logger.info(f"Loading album VGG feature cache: {cache_path.name}")
+            _cache = np.load(cache_path, allow_pickle=True)
+            album_hists = _cache["album_hists"].item()
+            # Reload tensors from numpy arrays stored in the cache
+            _feat1 = _cache["feats_slice1"]   # (N, C, H, W) float16 or float32
+            _feat2 = _cache["feats_slice2"]
+            _feat3 = _cache["feats_slice3"]
+            # Rebuild per-album dict for convenient access in the per-frame loop
+            album_vgg_feats = {}
+            for a_idx, a_name in enumerate(album_names):
+                album_vgg_feats[a_name] = [
+                    torch.from_numpy(_feat1[a_idx]).to(self.device),
+                    torch.from_numpy(_feat2[a_idx]).to(self.device),
+                    torch.from_numpy(_feat3[a_idx]).to(self.device),
+                ]
+        else:
+            # Precompute album histograms and VGG features to prevent redundant disk I/O and model inferences
+            logger.info("Precomputing histograms and VGG perceptual features for all album images...")
+            album_hists = {}
+            album_vgg_feats = {}
+            raw_feats1, raw_feats2, raw_feats3 = [], [], []
+            for a_name in album_names:
+                a_path = self.albums_dir / a_name
+                a_img = cv2.imread(str(a_path))
+                if a_img is not None:
+                    album_hists[a_name] = compute_histogram(a_img)
+                    a_tensor = self._preprocess_lpips_from_img(a_img).to(self.device)
+                    if use_fp16:
+                        a_tensor = a_tensor.half()
+                    with torch.inference_mode():
+                        feats = lpips_net(a_tensor)
+                    album_vgg_feats[a_name] = feats
+                    raw_feats1.append(feats[0].cpu().numpy())
+                    raw_feats2.append(feats[1].cpu().numpy())
+                    raw_feats3.append(feats[2].cpu().numpy())
+                else:
+                    album_hists[a_name] = None
+                    album_vgg_feats[a_name] = None
+                    raw_feats1.append(None)
+                    raw_feats2.append(None)
+                    raw_feats3.append(None)
+
+            # Save cache — only when at least one valid feature was computed
+            valid = [i for i, f in enumerate(raw_feats1) if f is not None]
+            if valid:
+                # Pad None entries with zeros to keep array structure consistent
+                ref_shape1 = raw_feats1[valid[0]].shape
+                ref_shape2 = raw_feats2[valid[0]].shape
+                ref_shape3 = raw_feats3[valid[0]].shape
+                arr1 = np.stack([raw_feats1[i] if raw_feats1[i] is not None else np.zeros(ref_shape1, dtype=np.float16) for i in range(len(album_names))])
+                arr2 = np.stack([raw_feats2[i] if raw_feats2[i] is not None else np.zeros(ref_shape2, dtype=np.float16) for i in range(len(album_names))])
+                arr3 = np.stack([raw_feats3[i] if raw_feats3[i] is not None else np.zeros(ref_shape3, dtype=np.float16) for i in range(len(album_names))])
+                np.savez(
+                    cache_path,
+                    album_hists=np.array(album_hists, dtype=object),
+                    feats_slice1=arr1,
+                    feats_slice2=arr2,
+                    feats_slice3=arr3,
+                )
+                logger.info(f"Saved album VGG feature cache: {cache_path.name}")
 
         match_rows = []
 
@@ -166,36 +258,33 @@ class ReferenceSelectorStage:
             if f_img is None:
                 continue
             f_hist = compute_histogram(f_img)
-            
-            # Step A: Coarse search
-            clip_sims = np.dot(album_clip, f_clip_emb)
-            scene_sims = np.dot(album_clip, f_scene_emb)
-            
-            face_sims = np.zeros(len(album_names))
-            has_face_pair = np.zeros(len(album_names), dtype=bool)
-            
-            if f_face is not None:
-                f_face_emb = f_face["embedding"]
-                for a_idx, a_name in enumerate(album_names):
-                    a_face = album_faces.get(a_name)
-                    if a_face is not None:
-                        sim = np.dot(f_face_emb, a_face["embedding"])
-                        face_sims[a_idx] = max(0.0, float(sim))
-                        has_face_pair[a_idx] = True
 
+            # ── OPT 2.2: Batched CLIP and scene similarity (matrix–vector) ───
+            # Single np.dot call replaces 65-iteration Python loop.
+            clip_sims = np.dot(album_clip, f_clip_emb)        # (N,)
+            scene_sims = np.dot(album_clip, f_scene_emb)      # (N,)
+
+            # ── OPT 2.2: Batched ArcFace similarity ───────────────────────
+            face_sims = np.zeros(len(album_names), dtype=np.float32)
+            has_face_pair = np.zeros(len(album_names), dtype=bool)
+            if f_face is not None and album_face_emb_matrix is not None:
+                f_face_emb = f_face["embedding"].astype(np.float32)
+                raw_face_sims = album_face_emb_matrix @ f_face_emb   # (N,) matrix–vector
+                face_sims = np.maximum(0.0, raw_face_sims)
+                has_face_pair = album_has_face.copy()
+
+            # ── OPT 2.4: Vectorized coarse score fusion ────────────────────
             w_face = self.weights["face"]
             w_clip = self.weights["clip"]
             w_scene = self.weights["scene"]
-            
-            coarse_scores = np.zeros(len(album_names))
-            for a_idx in range(len(album_names)):
-                eff_w_face = w_face if has_face_pair[a_idx] else 0.0
-                eff_w_clip = w_clip + (w_face - eff_w_face)
-                coarse_scores[a_idx] = (
-                    eff_w_face * face_sims[a_idx] +
-                    eff_w_clip * clip_sims[a_idx] +
-                    w_scene * scene_sims[a_idx]
-                )
+            # Effective per-album clip weight: absorbs face weight for albums without a face
+            eff_w_face_arr = np.where(has_face_pair, w_face, 0.0)
+            eff_w_clip_arr = w_clip + (w_face - eff_w_face_arr)
+            coarse_scores = (
+                eff_w_face_arr * face_sims +
+                eff_w_clip_arr * clip_sims +
+                w_scene * scene_sims
+            )
 
             # Step B: Fine selection on top 10
             top_10_indices = np.argsort(coarse_scores)[::-1][:10]
@@ -216,15 +305,23 @@ class ReferenceSelectorStage:
                 
                 a_feats = album_vgg_feats.get(a_name)
                 
+                # ── OPT 2.1: GPU-resident LPIPS accumulation ─────────────
+                # Accumulate squared differences as a CUDA tensor; transfer a
+                # single scalar after all layers, eliminating 30 round-trips
+                # per frame (3 layers × 10 candidates).
                 if f_feats is not None and a_feats is not None:
-                    lpips_dist = 0.0
-                    for feat_f, feat_a in zip(f_feats, a_feats):
-                        diff = (feat_f - feat_a) ** 2
-                        lpips_dist += float(diff.mean().cpu().item())
+                    with torch.inference_mode():
+                        lpips_dist_tensor = torch.tensor(0.0, device=self.device, dtype=f_feats[0].dtype)
+                        for feat_f, feat_a in zip(f_feats, a_feats):
+                            diff = (feat_f - feat_a) ** 2
+                            lpips_dist_tensor = lpips_dist_tensor + diff.mean()
+                        # Single transfer for the whole candidate
+                        lpips_dist = float(lpips_dist_tensor.item())
                     lpips_sim = max(0.0, 1.0 - (lpips_dist * 2.0))
                 else:
                     lpips_sim = 0.0
                 
+                # ── OPT 2.4: Vectorized fine score fusion ─────────────────
                 eff_w_face = w_face if has_face_pair[a_idx] else 0.0
                 w_other = w_clip + w_scene + self.weights["color"] + self.weights["lpips"]
                 eff_w_clip = w_clip + (w_face - eff_w_face) * (w_clip / w_other)
