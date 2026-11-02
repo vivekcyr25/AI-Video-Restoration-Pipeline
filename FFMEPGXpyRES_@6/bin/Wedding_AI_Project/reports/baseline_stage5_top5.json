@@ -9,7 +9,7 @@
       "lpips": 0.1
     },
     "lpips_backbone": "vgg16",
-    "timestamp": "2026-11-02T18:00:02Z"
+    "timestamp": "2026-11-02T18:30:54Z"
   },
   "frames": {
     "scene_0001.jpg": [
@@ -69,51 +69,51 @@
         "rank": 1,
         "album_image": "20260704_161931.jpg",
         "clip_score": 0.229,
-        "face_score": 106.1178,
+        "face_score": 106.4129,
         "scene_score": 0.2321,
         "color_score": 0.2256,
         "lpips_score": 0.9362,
-        "final_score": 53.2441
+        "final_score": 53.3916
       },
       {
         "rank": 2,
         "album_image": "20260704_162720.jpg",
         "clip_score": 0.327,
-        "face_score": 76.7534,
+        "face_score": 77.3755,
         "scene_score": 0.3288,
         "color_score": 0.3733,
         "lpips_score": 0.9318,
-        "final_score": 38.6055
+        "final_score": 38.9166
       },
       {
         "rank": 3,
         "album_image": "20260704_162111.jpg",
         "clip_score": 0.2185,
-        "face_score": 62.8432,
+        "face_score": 62.9921,
         "scene_score": 0.2337,
         "color_score": 0.3797,
         "lpips_score": 0.9339,
-        "final_score": 31.62
+        "final_score": 31.6945
       },
       {
         "rank": 4,
         "album_image": "20260704_161447.jpg",
         "clip_score": 0.3696,
-        "face_score": 61.8256,
+        "face_score": 62.0956,
         "scene_score": 0.3853,
         "color_score": 0.3047,
         "lpips_score": 0.9395,
-        "final_score": 31.1497
+        "final_score": 31.2847
       },
       {
         "rank": 5,
         "album_image": "20260704_162841.jpg",
         "clip_score": 0.2531,
-        "face_score": 61.8568,
+        "face_score": 61.9312,
         "scene_score": 0.2469,
         "color_score": 0.2721,
         "lpips_score": 0.9312,
-        "final_score": 31.124
+        "final_score": 31.1612
       }
     ],
     "scene_0003.jpg": [
@@ -121,51 +121,51 @@
         "rank": 1,
         "album_image": "20260704_161447.jpg",
         "clip_score": 0.2453,
-        "face_score": 35.1223,
+        "face_score": 35.283,
         "scene_score": 0.3077,
         "color_score": 0.4265,
-        "lpips_score": 0.9367,
-        "final_score": 17.7773
+        "lpips_score": 0.9366,
+        "final_score": 17.8576
       },
       {
         "rank": 2,
         "album_image": "20260704_161418.jpg",
         "clip_score": 0.1835,
-        "face_score": 30.8767,
+        "face_score": 30.982,
         "scene_score": 0.2301,
         "color_score": 0.3221,
         "lpips_score": 0.9406,
-        "final_score": 15.6243
+        "final_score": 15.677
       },
       {
         "rank": 3,
         "album_image": "20260704_161830.jpg",
         "clip_score": 0.2,
-        "face_score": 30.4896,
+        "face_score": 30.5667,
         "scene_score": 0.2539,
         "color_score": 0.3558,
-        "lpips_score": 0.9339,
-        "final_score": 15.4392
+        "lpips_score": 0.934,
+        "final_score": 15.4777
       },
       {
         "rank": 4,
         "album_image": "20260704_162424.jpg",
         "clip_score": 0.2302,
-        "face_score": 29.3183,
+        "face_score": 29.6922,
         "scene_score": 0.2576,
         "color_score": 0.3414,
         "lpips_score": 0.9336,
-        "final_score": 14.8584
+        "final_score": 15.0454
       },
       {
         "rank": 5,
-        "album_image": "20260704_161937.jpg",
-        "clip_score": 0.1679,
-        "face_score": 28.4126,
-        "scene_score": 0.2019,
-        "color_score": 0.3794,
-        "lpips_score": 0.9357,
-        "final_score": 14.3916
+        "album_image": "20260704_162832.jpg",
+        "clip_score": 0.2942,
+        "face_score": 28.3601,
+        "scene_score": 0.3331,
+        "color_score": 0.3485,
+        "lpips_score": 0.9306,
+        "final_score": 14.4001
       }
     ]
   }
