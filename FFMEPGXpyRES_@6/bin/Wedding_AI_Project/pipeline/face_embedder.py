@@ -45,9 +45,10 @@ class FaceEmbedderStage:
         self.frames_dir = Path(config["frame_extractor"]["output_dir"])
         self.models_dir = Path(config["global"]["models_dir"])
         
-        cfg = config["face_embeddings"]
-        self.detection_size = tuple(cfg["detection_size"])
-        self.face_cache_path = Path(cfg["face_cache_path"])
+        cfg = config.get("face_embeddings", {})
+        self.detection_size = tuple(cfg.get("detection_size", (640, 640)))
+        self.face_cache_path = Path(cfg.get("face_cache_path", "Models/face_cache.json"))
+        self.model_root = cfg.get("model_root", "") or config.get("face", {}).get("model_root", "")
         
         self.models_dir.mkdir(parents=True, exist_ok=True)
         self.cache = self._load_cache()
@@ -100,7 +101,10 @@ class FaceEmbedderStage:
         else:
             providers = ["CPUExecutionProvider"]
 
-        app = FaceAnalysis(name="buffalo_l", providers=providers)
+        kwargs = {}
+        if self.model_root:
+            kwargs["root"] = str(self.model_root)
+        app = FaceAnalysis(name="buffalo_l", providers=providers, **kwargs)
         ctx_id = 0 if self.device == "cuda" else -1
         app.prepare(ctx_id=ctx_id, det_size=self.detection_size)
 

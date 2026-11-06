@@ -37,6 +37,7 @@ clip_embeddings:
 face_embeddings:
   detection_size: [640, 640]
   face_cache_path: "Models/face_cache.json"
+  model_root: ""               # Root directory for InsightFace models ("" = default ~/.insightface)
   require_gpu: true            # Raise if CUDAExecutionProvider unavailable when device=cuda
 
 hybrid_matching:

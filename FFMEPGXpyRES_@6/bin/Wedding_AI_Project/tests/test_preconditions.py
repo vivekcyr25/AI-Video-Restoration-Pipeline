@@ -83,7 +83,7 @@ def test_face_embedder_require_gpu_guard(monkeypatch):
         stage._initialize_detector()
 
 
-def test_face_embedder_cpu_fallback_when_allowed(monkeypatch):
+def test_face_embedder_cpu_fallback_when_allowed(tmp_path, monkeypatch):
     """Verify that require_gpu=False allows fallback to CPU."""
     import onnxruntime as ort
     monkeypatch.setattr(ort, "get_available_providers", lambda: ["CPUExecutionProvider"])
@@ -94,13 +94,37 @@ def test_face_embedder_cpu_fallback_when_allowed(monkeypatch):
         "face_embeddings": {
             "detection_size": [640, 640],
             "face_cache_path": "Models/face_cache.json",
-            "require_gpu": False
+            "require_gpu": False,
+            "model_root": str(tmp_path),
         }
     }
     stage = FaceEmbedderStage(cfg)
+
+    # Assert fallback behavior without requiring network download of ~300MB weights.
+    # If the test needs the real model and files are absent, skip instead of failing.
+    real_model_dir = tmp_path / "models" / "buffalo_l"
+    mock_instances = []
+
+    class MockFaceAnalysis:
+        def __init__(self, name="buffalo_l", root=None, providers=None, **kwargs):
+            self.name = name
+            self.root = root
+            self.providers = providers
+            self.models = {}
+            mock_instances.append(self)
+
+        def prepare(self, ctx_id=0, det_size=(640, 640)):
+            self.ctx_id = ctx_id
+            self.det_size = det_size
+
+    monkeypatch.setattr("insightface.app.FaceAnalysis", MockFaceAnalysis)
+
     # Detector will initialize using CPU without raising
     app = stage._initialize_detector()
     assert app is not None
+    assert len(mock_instances) == 1
+    assert "CPUExecutionProvider" in mock_instances[0].providers
+    assert mock_instances[0].root == str(tmp_path)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
