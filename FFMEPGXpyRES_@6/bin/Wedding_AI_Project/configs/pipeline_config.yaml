@@ -16,6 +16,9 @@ benchmark:
   test_album: "Albums_sample"
   repetitions: 1
 
+ffmpeg:
+  binary: "ffmpeg"                # Path to FFmpeg executable ("ffmpeg" checks PATH and bundled fallback)
+
 
 video_repair:
   repaired_video_path: "Output/repaired_video.mp4"

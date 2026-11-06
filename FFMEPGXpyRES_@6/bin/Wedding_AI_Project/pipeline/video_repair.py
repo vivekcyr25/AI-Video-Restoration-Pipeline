@@ -10,6 +10,7 @@ import argparse
 import csv
 import logging
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -40,6 +41,46 @@ class VideoRepairStage:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.repaired_path.parent.mkdir(parents=True, exist_ok=True)
         self.scene_csv_path.parent.mkdir(parents=True, exist_ok=True)
+        self.ffmpeg_binary = self._resolve_ffmpeg_binary()
+
+    def _resolve_ffmpeg_binary(self) -> str:
+        """Resolve FFmpeg executable: configured path first, then PATH, then bundled fallback."""
+        cfg_bin = (
+            self.config.get("ffmpeg", {}).get("binary")
+            or self.config.get("video_repair", {}).get("ffmpeg_binary")
+            or "ffmpeg"
+        )
+
+        # 1. Direct path check (configured path)
+        candidate = Path(cfg_bin)
+        if candidate.is_file():
+            return str(candidate.resolve())
+
+        # 2. Check shutil.which for configured binary name or path
+        which_path = shutil.which(cfg_bin)
+        if which_path:
+            return which_path
+
+        # 3. Check bundled binary relative to project (e.g. FFMEPGXpyRES_@6/bin/ffmpeg.exe)
+        bundled_candidates = [
+            Path(__file__).resolve().parent.parent.parent / "ffmpeg.exe",
+            Path(__file__).resolve().parent.parent.parent / "ffmpeg",
+        ]
+        for b in bundled_candidates:
+            if b.is_file():
+                return str(b.resolve())
+
+        # 4. Check standard "ffmpeg" on PATH if cfg_bin was a custom name
+        if cfg_bin != "ffmpeg":
+            std_path = shutil.which("ffmpeg")
+            if std_path:
+                return std_path
+
+        raise FileNotFoundError(
+            f"FFmpeg binary not found (tried configured '{cfg_bin}' and system PATH). "
+            f"Please ensure FFmpeg is installed or set 'ffmpeg.binary' (or 'video_repair.ffmpeg_binary') "
+            f"in your configuration to the FFmpeg executable path."
+        )
 
     def run(self, force: bool = False) -> None:
         """Run the complete video repair and scene detection stage."""
@@ -49,7 +90,7 @@ class VideoRepairStage:
         if not self.repaired_path.exists() or force:
             logger.info(f"Repairing video container: {self.video_path} -> {self.repaired_path}")
             cmd = [
-                "ffmpeg", "-y",
+                self.ffmpeg_binary, "-y",
                 "-err_detect", "ignore_err",
                 "-i", str(self.video_path),
                 "-map", "0:v",

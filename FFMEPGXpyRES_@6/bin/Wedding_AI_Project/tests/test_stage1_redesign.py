@@ -8,6 +8,7 @@ Stage 2 (Representative Frame Extraction) redesign.
 from __future__ import annotations
 
 import csv
+import shutil
 from pathlib import Path
 import cv2
 import numpy as np
@@ -36,6 +37,15 @@ def create_synthetic_video(path: Path, width: int = 128, height: int = 128, fps:
 
 
 def test_stage1_and_stage2_redesign(tmp_path: Path) -> None:
+    # Resolve bundled FFmpeg or search system PATH; skip gracefully if not found
+    bundled_ffmpeg = Path(__file__).resolve().parents[2] / "ffmpeg.exe"
+    if not bundled_ffmpeg.exists():
+        bundled_ffmpeg = Path(__file__).resolve().parents[2] / "ffmpeg"
+
+    ffmpeg_bin = str(bundled_ffmpeg) if bundled_ffmpeg.exists() else shutil.which("ffmpeg")
+    if not ffmpeg_bin:
+        pytest.skip("FFmpeg binary not found on PATH or bundled directory; skipping Stage 1 test")
+
     # Setup test paths
     input_video = tmp_path / "test_input.mp4"
     create_synthetic_video(input_video, fps=10.0, num_frames=40)
@@ -48,7 +58,7 @@ def test_stage1_and_stage2_redesign(tmp_path: Path) -> None:
     scene_csv = output_dir / "scenes.csv"
     repr_frames_dir = tmp_path / "Representative_Frames"
     
-    # Create config dict
+    # Create config dict pointing ffmpeg.binary to resolved binary
     config = {
         "global": {
             "device": "cpu",
@@ -57,7 +67,11 @@ def test_stage1_and_stage2_redesign(tmp_path: Path) -> None:
             "albums_dir": str(tmp_path),
             "models_dir": str(tmp_path),
         },
+        "ffmpeg": {
+            "binary": ffmpeg_bin,
+        },
         "video_repair": {
+            "ffmpeg_binary": ffmpeg_bin,
             "repaired_video_path": str(repaired_video),
             "cfr_video_path": str(cfr_video),
             "scene_csv_path": str(scene_csv),
@@ -101,3 +115,27 @@ def test_stage1_and_stage2_redesign(tmp_path: Path) -> None:
         img = cv2.imread(str(frame_path))
         assert img is not None, "Extracted frame must be a valid image."
         assert img.shape == (128, 128, 3)
+
+
+def test_video_repair_missing_ffmpeg_raises_clear_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that a missing FFmpeg binary raises FileNotFoundError naming ffmpeg.binary."""
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda x: None)
+    config = {
+        "global": {"device": "cpu", "video_path": str(tmp_path / "in.mp4"), "output_dir": str(tmp_path)},
+        "ffmpeg": {"binary": "nonexistent_ffmpeg_xyz"},
+        "video_repair": {
+            "repaired_video_path": str(tmp_path / "rep.mp4"),
+            "cfr_video_path": str(tmp_path / "cfr.mp4"),
+            "scene_csv_path": str(tmp_path / "scenes.csv"),
+            "scene_threshold": 27.0,
+            "min_scene_len": 15,
+            "fps": 30.0,
+        }
+    }
+    # Mock Path.is_file so it reports false for all ffmpeg candidate checks
+    orig_is_file = Path.is_file
+    monkeypatch.setattr(Path, "is_file", lambda p: False if "ffmpeg" in str(p) else orig_is_file(p))
+
+    with pytest.raises(FileNotFoundError, match="ffmpeg.binary"):
+        VideoRepairStage(config)
